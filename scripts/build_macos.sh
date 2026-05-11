@@ -13,7 +13,7 @@ python3 -m venv .venv-build
 # shellcheck disable=SC1091
 source .venv-build/bin/activate
 pip install -U pip
-pip install -r requirements.txt -r requirements-build.txt
+pip install -r requirements.txt
 
 pyinstaller \
   --noconfirm --clean \

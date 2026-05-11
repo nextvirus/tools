@@ -1,1 +1,4 @@
+# 运行 GUI / 命令行
 pymupdf>=1.24.0
+# 打安装包（GitHub Actions / 本机 PyInstaller）；仅运行程序时也可装，体积略增
+pyinstaller>=6.3.0
