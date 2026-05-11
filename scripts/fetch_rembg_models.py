@@ -12,6 +12,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DEST = ROOT / "pdfgui" / "rembg_models"
 
+
+def _reconfigure_stdio() -> None:
+    """避免 Windows 控制台默认 cp1252 导致中文 print 触发 UnicodeEncodeError（含 GitHub Actions）。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError, ValueError):
+            pass
+
 # 与 rembg 内置 pooch URL / 校验一致（见 rembg.sessions.u2net_human_seg / u2net）
 MODELS: list[tuple[str, str, str]] = [
     (
@@ -49,6 +58,7 @@ def _download(url: str, dest: Path) -> None:
 
 
 def main() -> int:
+    _reconfigure_stdio()
     DEST.mkdir(parents=True, exist_ok=True)
     for name, url, expect_md5 in MODELS:
         target = DEST / name

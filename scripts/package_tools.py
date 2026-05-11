@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -14,8 +15,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def _reconfigure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError, ValueError):
+            pass
+
+
 def main() -> int:
-    subprocess.check_call([sys.executable, str(ROOT / "scripts" / "fetch_rembg_models.py")], cwd=ROOT)
+    _reconfigure_stdio()
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+    subprocess.check_call(
+        [sys.executable, str(ROOT / "scripts" / "fetch_rembg_models.py")],
+        cwd=ROOT,
+        env=env,
+    )
 
     hseg = ROOT / "pdfgui" / "rembg_models" / "u2net_human_seg.onnx"
     u2 = ROOT / "pdfgui" / "rembg_models" / "u2net.onnx"
@@ -62,7 +77,7 @@ def main() -> int:
     cmd = head + tail
 
     print("运行:", " ".join(cmd))
-    subprocess.check_call(cmd, cwd=ROOT)
+    subprocess.check_call(cmd, cwd=ROOT, env=env)
     return 0
 
 
