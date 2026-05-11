@@ -17,6 +17,8 @@ __all__ = [
     "browse_save_pdf",
     "browse_font",
     "browse_dir",
+    "browse_raster_image",
+    "pick_raster_image_path",
 ]
 
 
@@ -111,5 +113,54 @@ def browse_font(var: tk.StringVar) -> None:
 
 def browse_dir(var: tk.StringVar) -> None:
     p = filedialog.askdirectory(title="选择输出文件夹")
+    if p:
+        var.set(p)
+
+
+def pick_raster_image_path() -> str | None:
+    p = filedialog.askopenfilename(
+        title="选择照片",
+        filetypes=[
+            ("图片", "*.png *.jpg *.jpeg *.webp *.bmp *.tif"),
+            ("全部", "*.*"),
+        ],
+    )
+    return p if p else None
+
+
+def browse_raster_image(var: tk.StringVar) -> None:
+    p = pick_raster_image_path()
+    if p:
+        var.set(p)
+
+
+def browse_save_image(
+    var: tk.StringVar,
+    src_var: tk.StringVar,
+    *,
+    suggested_path: str | None = None,
+) -> None:
+    if suggested_path and str(suggested_path).strip():
+        sp = Path(suggested_path)
+        ext = sp.suffix.lower() if sp.suffix else ".png"
+        if ext not in (".png", ".jpg", ".jpeg"):
+            ext = ".png"
+        defaultextension = ext
+        initialfile = sp.name
+        initialdir = str(sp.parent) if sp.parent.exists() else None
+    else:
+        initial = Path(src_var.get()) if src_var.get().strip() else Path.home() / "output.png"
+        stem = initial.stem if initial.suffix else "output"
+        ext = initial.suffix.lower() if initial.suffix.lower() in (".png", ".jpg", ".jpeg") else ".png"
+        defaultextension = ext
+        initialfile = f"{stem}{ext}"
+        initialdir = str(initial.parent) if initial.parent.exists() else None
+    p = filedialog.asksaveasfilename(
+        title="保存为",
+        defaultextension=defaultextension,
+        filetypes=[("PNG", "*.png"), ("JPEG", "*.jpg *.jpeg")],
+        initialfile=initialfile,
+        initialdir=initialdir,
+    )
     if p:
         var.set(p)

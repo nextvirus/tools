@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from tkinter import ttk
 
-from . import image_export, watermark
+from . import image_export, photo_background, watermark
 
 if TYPE_CHECKING:
     from ..app import PdfToolsApp
@@ -21,6 +21,7 @@ TabBuilder = Callable[["PdfToolsApp", ttk.Notebook], None]
 TAB_BUILDERS: Sequence[TabBuilder] = (
     watermark.build_tab,
     image_export.build_tab,
+    photo_background.build_tab,
 )
 
 

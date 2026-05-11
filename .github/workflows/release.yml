@@ -34,26 +34,16 @@ jobs:
       - name: Install Python deps
         run: pip install -r requirements.txt
 
-      - name: PyInstaller
-        run: |
-          pyinstaller \
-            --noconfirm --clean \
-            --windowed \
-            --name PdfTools \
-            --hidden-import=pdfgui.tabs.watermark \
-            --hidden-import=pdfgui.tabs.image_export \
-            --hidden-import=pdfgui.watermark_pdf \
-            --hidden-import=pdfgui.pdf_to_img \
-            --collect-all pymupdf \
-            pdf_gui.py
+      - name: Package tools (fetch rembg models + PyInstaller)
+        run: python scripts/package_tools.py
 
       - name: Create tarball
-        run: tar -czf PdfTools-linux-amd64.tar.gz -C dist PdfTools
+        run: tar -czf tools-linux-amd64.tar.gz -C dist tools
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PdfTools-linux-amd64
-          path: PdfTools-linux-amd64.tar.gz
+          name: tools-linux-amd64
+          path: tools-linux-amd64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -69,28 +59,17 @@ jobs:
       - name: Install Python deps
         run: pip install -r requirements.txt
 
-      - name: PyInstaller
-        shell: pwsh
-        run: |
-          pyinstaller `
-            --noconfirm --clean `
-            --windowed `
-            --name PdfTools `
-            --hidden-import=pdfgui.tabs.watermark `
-            --hidden-import=pdfgui.tabs.image_export `
-            --hidden-import=pdfgui.watermark_pdf `
-            --hidden-import=pdfgui.pdf_to_img `
-            --collect-all pymupdf `
-            pdf_gui.py
+      - name: Package tools (fetch rembg models + PyInstaller)
+        run: python scripts/package_tools.py
 
       - name: Create zip
         shell: pwsh
-        run: Compress-Archive -Path dist/PdfTools -DestinationPath PdfTools-windows-amd64.zip -Force
+        run: Compress-Archive -Path dist/tools -DestinationPath tools-windows-amd64.zip -Force
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PdfTools-windows-amd64
-          path: PdfTools-windows-amd64.zip
+          name: tools-windows-amd64
+          path: tools-windows-amd64.zip
 
   build-macos:
     runs-on: macos-latest
@@ -106,27 +85,16 @@ jobs:
       - name: Install Python deps
         run: pip install -r requirements.txt
 
-      - name: PyInstaller
-        run: |
-          pyinstaller \
-            --noconfirm --clean \
-            --windowed \
-            --name PdfTools \
-            --osx-bundle-identifier com.pdftools.pdfgui \
-            --hidden-import=pdfgui.tabs.watermark \
-            --hidden-import=pdfgui.tabs.image_export \
-            --hidden-import=pdfgui.watermark_pdf \
-            --hidden-import=pdfgui.pdf_to_img \
-            --collect-all pymupdf \
-            pdf_gui.py
+      - name: Package tools (fetch rembg models + PyInstaller)
+        run: python scripts/package_tools.py
 
       - name: Zip .app
-        run: cd dist && zip -ry ../PdfTools-macos.zip PdfTools.app
+        run: cd dist && zip -ry ../tools-macos.zip tools.app
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PdfTools-macos
-          path: PdfTools-macos.zip
+          name: tools-macos
+          path: tools-macos.zip
 
   publish:
     needs: [build-linux, build-windows, build-macos]
@@ -135,15 +103,15 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: PdfTools-linux-amd64
+          name: tools-linux-amd64
           path: release-assets
       - uses: actions/download-artifact@v4
         with:
-          name: PdfTools-windows-amd64
+          name: tools-windows-amd64
           path: release-assets
       - uses: actions/download-artifact@v4
         with:
-          name: PdfTools-macos
+          name: tools-macos
           path: release-assets
 
       - name: Collect binaries (artifact 单文件下载可能在子目录)

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import sys
 import threading
+from typing import Literal, cast
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
 from .pdf_to_img import pdf_to_images
+from .photo_bg import default_output_path, replace_photo_background
 from .watermark_pdf import add_watermark
 
 from . import theme
@@ -62,20 +64,43 @@ class PdfToolsApp(tk.Tk):
         mount_all_tabs(self, nb)
 
     def attach_scale_resize(self, parent: tk.Misc, reserve: int = 200) -> None:
-        def _sync(_event: object | None = None) -> None:
+        """改 Scale.length 会连锁触发 Configure；用防抖 + 子控件快照 + 宽度去抖，避免重入与 RecursionError。"""
+        last_w = [-1]
+        debounce_id: list[int | None] = [None]
+
+        def _apply() -> None:
+            debounce_id[0] = None
             try:
                 W = int(parent.winfo_width())
             except (tk.TclError, ValueError):
                 return
             if W < reserve + 48:
                 return
+            if abs(W - last_w[0]) < 3:
+                return
+            last_w[0] = W
             L = max(W - reserve - 20, 72)
-            for ch in parent.winfo_children():
+            try:
+                kids = list(parent.winfo_children())
+            except tk.TclError:
+                return
+            for ch in kids:
                 if isinstance(ch, tk.Scale):
-                    ch.configure(length=L)
+                    try:
+                        ch.configure(length=L)
+                    except tk.TclError:
+                        pass
 
-        parent.bind("<Configure>", lambda _e: _sync(), add="+")
-        self.after_idle(_sync)
+        def _on_configure(_event: object | None = None) -> None:
+            if debounce_id[0] is not None:
+                try:
+                    self.after_cancel(debounce_id[0])
+                except tk.TclError:
+                    pass
+            debounce_id[0] = self.after(50, _apply)
+
+        parent.bind("<Configure>", _on_configure, add="+")
+        self.after_idle(_on_configure)
 
     def slider_row(
         self,
@@ -236,6 +261,34 @@ class PdfToolsApp(tk.Tk):
             src = Path(p)
             self.im_out.set(str(src.parent / f"{src.stem}_images"))
 
+    def _maybe_fill_photo_out(self) -> None:
+        inp = self.ph_in.get().strip()
+        if not inp or not Path(inp).is_file():
+            return
+        bg = self.ph_color.get().strip().lower()
+        if bg not in ("red", "blue", "white"):
+            return
+        out = self.ph_out.get().strip()
+        cur = default_output_path(inp, cast(Literal["red", "blue", "white"], bg))
+        presets = [
+            default_output_path(inp, "red"),
+            default_output_path(inp, "blue"),
+            default_output_path(inp, "white"),
+        ]
+        if not out:
+            self.ph_out.set(cur)
+        elif out in presets:
+            self.ph_out.set(cur)
+
+    def pick_ph_in(self) -> None:
+        from . import widgets
+
+        p = widgets.pick_raster_image_path()
+        if not p:
+            return
+        self.ph_in.set(p)
+        self._maybe_fill_photo_out()
+
     def fill_simfang(self) -> None:
         if theme._WIN_SIMFANG.is_file():
             self.wm_fontfile.set(str(theme._WIN_SIMFANG))
@@ -316,6 +369,39 @@ class PdfToolsApp(tk.Tk):
     def _done_im(self, outd: str, n: int) -> None:
         messagebox.showinfo("完成", f"共 {n} 张\n输出目录:\n{outd}")
         self._im_btn.configure(state=tk.NORMAL)
+
+    def run_photo_bg(self) -> None:
+        def job() -> None:
+            inp = self.ph_in.get().strip()
+            if not inp:
+                raise ValueError("请选择照片。")
+            bg = self.ph_color.get().strip().lower()
+            if bg not in ("red", "blue", "white"):
+                raise ValueError("请选择底色：红 / 蓝 / 白。")
+            bg_key = cast(Literal["red", "blue", "white"], bg)
+            outp = self.ph_out.get().strip()
+            if not outp:
+                outp = default_output_path(inp, bg_key)
+            else:
+                p = Path(outp)
+                if not p.suffix:
+                    outp = str(p.with_suffix(".png"))
+            replace_photo_background(inp, outp, bg_key)
+            self.after(0, lambda p=outp: self._done_ph(p))
+
+        self._ph_btn.configure(state=tk.DISABLED)
+
+        def wrap() -> None:
+            try:
+                job()
+            except Exception as e:
+                self.after(0, lambda err=e: self._fail("换底失败", err, self._ph_btn))
+
+        threading.Thread(target=wrap, daemon=True).start()
+
+    def _done_ph(self, outp: str) -> None:
+        messagebox.showinfo("完成", f"已保存:\n{outp}")
+        self._ph_btn.configure(state=tk.NORMAL)
 
     def _fail(self, title: str, err: Exception, btn: ttk.Button) -> None:
         btn.configure(state=tk.NORMAL)

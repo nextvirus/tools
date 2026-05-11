@@ -8,3 +8,6 @@ dist/
 build/
 release/
 
+# rembg ONNX（体积大，用 scripts/fetch_rembg_models.py 拉取；打包前 CI 会下载）
+pdfgui/rembg_models/*.onnx
+
