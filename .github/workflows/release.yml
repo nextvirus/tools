@@ -1,0 +1,168 @@
+# 在 GitHub 托管的 Linux / Windows / macOS 上一键打 PyInstaller 包，并在推送版本 tag 时发布 Release。
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-build.txt
+
+      - name: Install system deps (tkinter + binutils)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-tk tk binutils
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt -r requirements-build.txt
+
+      - name: PyInstaller
+        run: |
+          pyinstaller \
+            --noconfirm --clean \
+            --windowed \
+            --name PdfTools \
+            --hidden-import=pdfgui.tabs.watermark \
+            --hidden-import=pdfgui.tabs.image_export \
+            --hidden-import=pdfgui.watermark_pdf \
+            --hidden-import=pdfgui.pdf_to_img \
+            --collect-all pymupdf \
+            pdf_gui.py
+
+      - name: Create tarball
+        run: tar -czf PdfTools-linux-amd64.tar.gz -C dist PdfTools
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PdfTools-linux-amd64
+          path: PdfTools-linux-amd64.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-build.txt
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt -r requirements-build.txt
+
+      - name: PyInstaller
+        shell: pwsh
+        run: |
+          pyinstaller `
+            --noconfirm --clean `
+            --windowed `
+            --name PdfTools `
+            --hidden-import=pdfgui.tabs.watermark `
+            --hidden-import=pdfgui.tabs.image_export `
+            --hidden-import=pdfgui.watermark_pdf `
+            --hidden-import=pdfgui.pdf_to_img `
+            --collect-all pymupdf `
+            pdf_gui.py
+
+      - name: Create zip
+        shell: pwsh
+        run: Compress-Archive -Path dist/PdfTools -DestinationPath PdfTools-windows-amd64.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PdfTools-windows-amd64
+          path: PdfTools-windows-amd64.zip
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-build.txt
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt -r requirements-build.txt
+
+      - name: PyInstaller
+        run: |
+          pyinstaller \
+            --noconfirm --clean \
+            --windowed \
+            --name PdfTools \
+            --osx-bundle-identifier com.pdftools.pdfgui \
+            --hidden-import=pdfgui.tabs.watermark \
+            --hidden-import=pdfgui.tabs.image_export \
+            --hidden-import=pdfgui.watermark_pdf \
+            --hidden-import=pdfgui.pdf_to_img \
+            --collect-all pymupdf \
+            pdf_gui.py
+
+      - name: Zip .app
+        run: cd dist && zip -ry ../PdfTools-macos.zip PdfTools.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PdfTools-macos
+          path: PdfTools-macos.zip
+
+  publish:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: PdfTools-linux-amd64
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: PdfTools-windows-amd64
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: PdfTools-macos
+          path: release-assets
+
+      - name: Collect binaries (artifact 单文件下载可能在子目录)
+        run: |
+          mkdir -p upload
+          find release-assets -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp -v {} upload/ \;
+          ls -la upload
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: upload/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
