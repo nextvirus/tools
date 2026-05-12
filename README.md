@@ -49,9 +49,15 @@ python scripts/package_tools.py
 
 解压 `tools-windows-amd64.zip` 后进入 **`tools` 文件夹**（与 `_internal` 同级）再双击 `tools.exe`。
 
-### macOS：可选模块安装包（.pkg）
+### macOS：zip、pkg 与 dmg
 
-Release 除 `tools-macos.zip`（完整 `.app` 便携包）外，还提供 **`tools-macos-selectable.pkg`**：安装器中会列出 **Core（必选）**、**Photo / 照片换底**、**Meeting / 会议纪要** 三个子包，可取消勾选不需要的模块；说明文字中的 MB 数为 **解压后约占用**，与 Windows 同源脚本统计。未安装的模块在应用内不会显示对应标签页。
+- **`tools-macos.zip`**：里面是完整的 **`tools.app`**，解压后双击即可用（与很多人习惯的「dmg 里拖一个 app」**效果相同**，只是少了一层磁盘映像外壳）。
+- **`tools-macos-selectable.pkg`**：苹果原生的**安装包向导**，用来实现「安装时勾选核心 / 换底 / 会议纪要」并显示各模块约占用体积；**不是 dmg**，因为 **`.pkg` 才支持**这种分组件安装流程。
+- **`.dmg`**：本质是**磁盘映像**，常见用法是把 `.app` 放进 dmg 里方便用户拖到「应用程序」。本仓库 **CI 未自动生成 dmg**（避免多一步签名与体积）；若你需要 dmg，可在本机用 `hdiutil` 或 [create-dmg](https://github.com/create-dmg/create-dmg) 把解压出的 `tools.app` 打成镜像即可。
+
+#### 可选模块安装包（.pkg）详情
+
+Release 除 `tools-macos.zip` 外，还提供 **`tools-macos-selectable.pkg`**：安装器中会列出 **Core（必选）**、**Photo / 照片换底**、**Meeting / 会议纪要** 三个子包，可取消勾选不需要的模块；说明文字中的 MB 数为 **解压后约占用**，与 Windows 同源脚本统计。未安装的模块在应用内不会显示对应标签页。
 
 本地构建：在 macOS 上先执行 `python scripts/package_tools.py`，再执行 `bash scripts/build_macos_modular_pkg.sh 0.2.0`（脚本内会再次执行 `stage_installer_components.py` 并写入与版本一致的 `distribution.xml`）。若仅双击 `.app` 使用便携 zip，则始终为完整功能。
 
