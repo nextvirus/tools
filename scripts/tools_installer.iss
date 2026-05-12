@@ -28,8 +28,9 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 CloseApplications=no
 
+; 使用 compiler:Default.isl（英文），CI 上 choco 安装的 Inno 常不含 ChineseSimplified.isl
 [Languages]
-Name: "chs"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

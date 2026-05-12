@@ -41,7 +41,7 @@ python scripts/package_tools.py
 ./scripts/build_windows_installer.ps1 -Version 0.2.0
 ```
 
-生成 `dist/tools-windows-amd64-setup.exe`。GitHub Release 里也会附带该文件与便携 zip。
+生成 `dist/tools-windows-amd64-setup.exe`（安装向导为**英文**，以便 GitHub Actions 等精简 Inno 环境也能编译）。GitHub Release 里也会附带该文件与便携 zip。
 
 ### Windows：便携 zip
 
