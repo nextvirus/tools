@@ -1,4 +1,4 @@
-# PDF 工具
+# tools
 
 基于 Tk 的桌面小工具，当前提供三项能力：
 
@@ -15,7 +15,7 @@ pip install -r requirements.txt
 python pdf_gui.py
 ```
 
-- **照片换底**依赖 `rembg[cpu]`（CPU 版 onnxruntime）。分割模型默认放在 `pdfgui/rembg_models/`；若目录里没有 `.onnx` 文件，可在项目根目录执行 `python scripts/fetch_rembg_models.py` 下载到本地（便于离线使用）。
+- **照片换底**依赖 `rembg[cpu]`（CPU 版 onnxruntime）。模型文件会打进安装包/绿色版目录（`pdfgui/rembg_models` 下的 `.onnx`）；**第一次换底仍可能较慢**（加载 onnxruntime、读入 ONNX、首次推理），第二次起会快很多；程序启动后会在后台尝试预加载模型以缩短首次等待。
 - 部分能力也可在项目根目录用模块方式调用，例如：`python -m pdfgui.watermark_pdf`、`python -m pdfgui.pdf_to_img`（见 `pdf_gui.py` 顶部注释）。
 
 ## 打包（可选）
@@ -27,11 +27,11 @@ pip install -r requirements.txt
 python scripts/package_tools.py
 ```
 
-产出在 `dist/tools`（内含 `tools.exe` 与 `_internal`，**必须同目录**，不能只复制单个 exe）。因照片换底依赖 rembg 整条链（onnxruntime、numpy、scipy、scikit-image、pymatting 等），**体积会明显变大**，属正常现象。
+产出在 `dist/tools`（内含 `tools.exe` 与 `_internal`，**必须同目录**，不能只复制单个 exe）。`package_tools.py` 在 PyInstaller 结束后会**强制校验** `dist` 内是否已包含 `pdfgui/rembg_models` 下的两个 `.onnx`；缺失则**直接失败退出**，不会产出不完整安装目录。因照片换底依赖 rembg 整条链（onnxruntime、numpy、scipy、scikit-image、pymatting 等），**体积会明显变大**，属正常现象。
 
 ### Windows：安装包（推荐）
 
-单独把 `tools.exe` 拷到别处而未带上同级 `_internal` 时，会报找不到 `python312.dll`（依赖与 Python 运行时在 `_internal` 内）。**推荐**使用 Inno 安装包，一键装到 `%LocalAppData%\Programs\pdf-tools` 并可选桌面快捷方式：
+单独把 `tools.exe` 拷到别处而未带上同级 `_internal` 时，会报找不到 `python312.dll`（依赖与 Python 运行时在 `_internal` 内）。**推荐**使用 Inno 安装包，一键装到 `%LocalAppData%\Programs\tools` 并可选桌面快捷方式：
 
 1. 先执行上面的 `python scripts/package_tools.py`。
 2. 安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)，或执行 `choco install innosetup -y`。

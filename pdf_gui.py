@@ -1,5 +1,5 @@
 """
-PDF 小工具：文字水印、PDF 转图片。
+tools：文字水印、PDF 转图片、照片换底。
 界面：现代浅色扁平风格（白卡片 + 灰底 + 蓝色主操作），易读易点。
 
 依赖: pip install -r requirements.txt

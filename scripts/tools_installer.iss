@@ -5,7 +5,7 @@
 #ifndef MyAppVersion
   #define MyAppVersion "0.0.0"
 #endif
-#define MyAppName "PDF 工具"
+#define MyAppName "tools"
 #define MyAppPublisher "tools"
 #define MyAppExeName "tools.exe"
 
@@ -14,7 +14,7 @@ AppId={{B4E2C8D1-5F3A-4E9B-8C7D-1A2B3C4D5E6F}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\Programs\pdf-tools
+DefaultDirName={localappdata}\Programs\tools
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist

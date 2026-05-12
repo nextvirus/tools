@@ -105,6 +105,8 @@ def main() -> int:
 
     print("运行:", " ".join(cmd))
     subprocess.check_call(cmd, cwd=ROOT, env=env)
+
+    subprocess.check_call([sys.executable, str(ROOT / "scripts" / "verify_bundled_rembg_models.py")], cwd=ROOT, env=env)
     return 0
 
 

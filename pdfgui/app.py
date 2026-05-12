@@ -10,7 +10,7 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 from .pdf_to_img import pdf_to_images
-from .photo_bg import default_output_path, replace_photo_background
+from .photo_bg import default_output_path, replace_photo_background, warmup_rembg_session
 from .watermark_pdf import add_watermark
 
 from . import theme
@@ -20,7 +20,7 @@ from .tabs import mount_all_tabs
 class PdfToolsApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("PDF 工具")
+        self.title("tools")
         self.minsize(560, 420)
         self.geometry("820x780")
         self.configure(bg=theme.U_BG)
@@ -41,10 +41,10 @@ class PdfToolsApp(tk.Tk):
         accent.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 14))
         titles = tk.Frame(top, bg=theme.U_CARD)
         titles.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        tk.Label(titles, text="PDF 工具", font=theme.FONT_TITLE, fg=theme.U_TEXT, bg=theme.U_CARD).pack(anchor=tk.W)
+        tk.Label(titles, text="tools", font=theme.FONT_TITLE, fg=theme.U_TEXT, bg=theme.U_CARD).pack(anchor=tk.W)
         tk.Label(
             titles,
-            text="为 PDF 添加文字水印，或将页面导出为图片",
+            text="为 PDF 添加水印、导出页面为图片，或更换照片底色",
             font=theme.FONT_SUB,
             fg=theme.U_TEXT_SEC,
             bg=theme.U_CARD,
@@ -62,6 +62,17 @@ class PdfToolsApp(tk.Tk):
         nb.grid(row=0, column=0, sticky=tk.NSEW)
 
         mount_all_tabs(self, nb)
+
+        def _warm_rembg() -> None:
+            def _run() -> None:
+                try:
+                    warmup_rembg_session()
+                except Exception:
+                    pass
+
+            threading.Thread(target=_run, daemon=True).start()
+
+        self.after(600, _warm_rembg)
 
     def attach_scale_resize(self, parent: tk.Misc, reserve: int = 200) -> None:
         """改 Scale.length 会连锁触发 Configure；用防抖 + 子控件快照 + 宽度去抖，避免重入与 RecursionError。"""

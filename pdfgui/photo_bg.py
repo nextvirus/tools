@@ -39,16 +39,56 @@ BG_RGB: dict[BgKey, tuple[int, int, int]] = {
 _session = None
 
 
+def models_dir() -> Path:
+    """当前使用的 rembg 模型目录（开发为源码旁 rembg_models；打包后为 _MEIPASS 内）。"""
+    return _rembg_models_dir()
+
+
+def _human_seg_model_path() -> Path:
+    return _rembg_models_dir() / "u2net_human_seg.onnx"
+
+
+def _u2net_model_path() -> Path:
+    return _rembg_models_dir() / "u2net.onnx"
+
+
+def _ensure_model_files() -> None:
+    """避免缺失 onnx 时 rembg 走网络下载导致长时间卡住。"""
+    root = _rembg_models_dir()
+    human = _human_seg_model_path()
+    fallback = _u2net_model_path()
+    if not human.is_file() and not fallback.is_file():
+        loc = root
+        raise FileNotFoundError(
+            f"未找到换底模型（需要 u2net_human_seg.onnx 或 u2net.onnx）。目录: {loc}。"
+            "安装包应已内置；若缺失请重新用 scripts/package_tools.py 打包。"
+            "开发环境请执行: python scripts/fetch_rembg_models.py"
+        )
+
+
+def warmup_rembg_session() -> None:
+    """在后台预先加载 ONNX 会话，减轻用户第一次点「生成换底」时的等待（仍会占用几秒 CPU/磁盘）。"""
+    try:
+        _ensure_model_files()
+        _get_session()
+    except Exception:
+        pass
+
+
 def _get_session():
     """u2net_human_seg 偏人像；权重放在 pdfgui/rembg_models（见 scripts/fetch_rembg_models.py）。"""
     global _session
     if _session is not None:
         return _session
+    _ensure_model_files()
     from rembg import new_session
 
-    try:
-        _session = new_session("u2net_human_seg")
-    except Exception:
+    if _human_seg_model_path().is_file():
+        try:
+            _session = new_session("u2net_human_seg")
+        except Exception:
+            _session = new_session("u2net")
+    else:
         _session = new_session("u2net")
     return _session
 

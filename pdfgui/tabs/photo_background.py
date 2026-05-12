@@ -69,8 +69,9 @@ def build_tab(app, nb: ttk.Notebook) -> None:
     hint = ttk.Label(
         sec_bg,
         text=(
-            "使用 rembg 人像分割（u2net_human_seg）。模型文件放在程序目录下的 rembg_models，"
-            "离线可用。若缺失，请在项目根目录执行：python scripts/fetch_rembg_models.py"
+            "使用 rembg（u2net_human_seg）。模型已随程序放在 rembg_models（安装包在 _internal 内），一般无需联网。"
+            "第一次换底仍会较慢：要加载 onnxruntime、读入 ONNX 并做首次推理；启动约 1 秒后会自动在后台预加载，"
+            "稍等再点「生成」会快很多。开发环境若缺模型请执行：python scripts/fetch_rembg_models.py"
         ),
         wraplength=400,
         style="Muted.TLabel",
