@@ -30,8 +30,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 CloseApplications=no
-; 不设 [Types] 时仍显示「选择组件」页，逐项勾选各模块（Inno 会隐式创建 full 类型）
-AlwaysShowComponentsOnSelectiveInstall=yes
+; 不设 [Types] 时 Inno 会隐式创建 full/compact/custom（含 iscustom），用户仍可逐项勾选组件
+AlwaysShowComponentsList=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
