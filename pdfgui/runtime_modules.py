@@ -3,6 +3,14 @@
 from __future__ import annotations
 
 
+def pdf_module_available() -> bool:
+    try:
+        import fitz  # noqa: F401  # PyMuPDF
+    except ImportError:
+        return False
+    return True
+
+
 def photo_module_available() -> bool:
     try:
         import onnxruntime  # noqa: F401

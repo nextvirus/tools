@@ -9,9 +9,6 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
-from pdfgui.pdf.pdf_to_img import pdf_to_images
-from pdfgui.pdf.watermark_pdf import add_watermark
-
 from pdfgui.ui import theme
 from pdfgui.runtime_modules import photo_module_available
 from pdfgui.tabs import mount_all_tabs
@@ -45,7 +42,7 @@ class PdfToolsApp(tk.Tk):
         tk.Label(titles, text="tools", font=theme.FONT_TITLE, fg=theme.U_TEXT, bg=theme.U_CARD).pack(anchor=tk.W)
         tk.Label(
             titles,
-            text="为 PDF 添加水印、导出页面为图片、更换照片底色，或使用麦克风整理会议纪要",
+            text="照片换底、PDF 水印与分页导出为图、麦克风会议纪要等；安装时可按需勾选各功能模块",
             font=theme.FONT_SUB,
             fg=theme.U_TEXT_SEC,
             bg=theme.U_CARD,
@@ -322,6 +319,8 @@ class PdfToolsApp(tk.Tk):
 
     def run_watermark(self) -> None:
         def job() -> None:
+            from pdfgui.pdf.watermark_pdf import add_watermark
+
             inp = self.wm_in.get().strip()
             outp = self.wm_out.get().strip()
             if not inp or not outp:
@@ -360,6 +359,8 @@ class PdfToolsApp(tk.Tk):
 
     def run_image(self) -> None:
         def job() -> None:
+            from pdfgui.pdf.pdf_to_img import pdf_to_images
+
             inp = self.im_in.get().strip()
             outd = self.im_out.get().strip()
             if not inp or not outd:

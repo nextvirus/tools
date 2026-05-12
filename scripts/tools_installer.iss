@@ -30,24 +30,24 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 CloseApplications=no
+; 不设 [Types] 时仍显示「选择组件」页，逐项勾选各模块（Inno 会隐式创建 full 类型）
+AlwaysShowComponentsOnSelectiveInstall=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Types]
-Name: "full"; Description: "All modules / 全部（解压合计约 {#SizeTotalMB} MB）"
-Name: "compact"; Description: "Core only / 仅核心 PDF（约 {#SizeCoreMB} MB）"
-
 [Components]
-Name: "core"; Description: "Core / 核心 — PDF watermark, export images（约 {#SizeCoreMB} MB）"; Types: full compact; Flags: fixed
-Name: "photo"; Description: "Photo / 照片换底 — rembg, onnx（约 {#SizePhotoMB} MB）"; Types: full
-Name: "meeting"; Description: "Meeting / 会议纪要 — mic + Vosk local ASR（约 {#SizeMeetingMB} MB）"; Types: full
+Name: "runtime"; Description: "[1] Runtime / 运行环境 — app shell + shared libraries（约 {#SizeRuntimeMB} MB）"; Flags: fixed
+Name: "pdf"; Description: "[2] PDF / 水印与导出图片 — PyMuPDF（约 {#SizePdfMB} MB）"
+Name: "photo"; Description: "[3] Photo / 照片换底 — rembg + ONNX + portrait models（约 {#SizePhotoMB} MB）"
+Name: "meeting"; Description: "[4] Meeting / 会议纪要 — microphone + Vosk offline Chinese ASR + DeepSeek tab（约 {#SizeMeetingMB} MB）"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\dist\installer\win\core\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: core
+Source: "..\dist\installer\win\runtime\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: runtime
+Source: "..\dist\installer\win\pdf\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: pdf
 Source: "..\dist\installer\win\photo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: photo
 Source: "..\dist\installer\win\meeting\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: meeting
 

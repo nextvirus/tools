@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build tools-macos-selectable.pkg from dist/installer/mac/{core,photo,meeting}.
+# Build tools-macos-selectable.pkg from dist/installer/mac/{runtime,pdf,photo,meeting}.
 # Run after: python scripts/package_tools.py
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,7 +17,8 @@ fi
 PKGDIR="$ROOT/dist/mac-pkg-work"
 mkdir -p "$PKGDIR"
 cd "$PKGDIR"
-pkgbuild --root "$ST/core" --identifier com.tools.pkg.core --version "$VER" --install-location /Applications core.pkg
+pkgbuild --root "$ST/runtime" --identifier com.tools.pkg.runtime --version "$VER" --install-location /Applications runtime.pkg
+pkgbuild --root "$ST/pdf" --identifier com.tools.pkg.pdf --version "$VER" --install-location /Applications pdf.pkg
 pkgbuild --root "$ST/photo" --identifier com.tools.pkg.photo --version "$VER" --install-location /Applications photo.pkg
 pkgbuild --root "$ST/meeting" --identifier com.tools.pkg.meeting --version "$VER" --install-location /Applications meeting.pkg
 productbuild --distribution "$DIST_XML" --package-path "$PKGDIR" "$ROOT/dist/tools-macos-selectable.pkg"
