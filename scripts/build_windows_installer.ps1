@@ -17,6 +17,8 @@ if (-not (Test-Path (Join-Path $Root "dist\tools\tools.exe"))) {
     Write-Error "未找到 dist\tools\tools.exe。请先在仓库根目录执行: python scripts/package_tools.py"
 }
 
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
 python (Join-Path $Root "scripts\verify_bundled_rembg_models.py")
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
