@@ -14,6 +14,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# rembg 的 bg.py 会导入 onnxruntime / numpy / pymatting / scipy / skimage 等；只 collect rembg 本体在 PyInstaller 下仍会 ImportError
+_COLLECT_ALL_PACKAGES = (
+    "pymupdf",
+    "rembg",
+    "onnxruntime",
+    "numpy",
+    "scipy",
+    "skimage",
+    "pymatting",
+    "pooch",
+    "jsonschema",
+    "tqdm",
+)
+
+_HIDDEN_IMPORTS = (
+    "rembg.bg",
+    "rembg.session_factory",
+    "rembg.sessions.base",
+    "rembg.sessions.u2net",
+    "rembg.sessions.u2net_human_seg",
+    "onnxruntime",
+    "PIL._imagingtk",
+    "PIL._tkinter_finder",
+)
+
 
 def _reconfigure_stdio() -> None:
     for stream in (sys.stdout, sys.stderr):
@@ -62,18 +87,20 @@ def main() -> int:
         "--hidden-import=pdfgui.pdf_to_img",
         "--hidden-import=pdfgui.tabs.photo_background",
         "--hidden-import=pdfgui.photo_bg",
-        "--collect-all",
-        "pymupdf",
-        "--collect-all",
-        "rembg",
-        "--collect-all",
-        "onnxruntime",
-        "--add-data",
-        add_human,
-        "--add-data",
-        add_u2,
-        str(ROOT / "pdf_gui.py"),
     ]
+    for pkg in _COLLECT_ALL_PACKAGES:
+        tail.extend(["--collect-all", pkg])
+    for mod in _HIDDEN_IMPORTS:
+        tail.append(f"--hidden-import={mod}")
+    tail.extend(
+        [
+            "--add-data",
+            add_human,
+            "--add-data",
+            add_u2,
+            str(ROOT / "pdf_gui.py"),
+        ]
+    )
     cmd = head + tail
 
     print("运行:", " ".join(cmd))

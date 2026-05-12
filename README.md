@@ -27,4 +27,4 @@ pip install -r requirements.txt
 python scripts/package_tools.py
 ```
 
-产出在 `dist/tools`。发布流程见仓库内 GitHub Actions（`.github/workflows/release.yml`）。
+产出在 `dist/tools`。因照片换底依赖 rembg 整条链（onnxruntime、numpy、scipy、scikit-image、pymatting 等），**安装包体积会明显变大**，属正常现象。发布流程见仓库内 GitHub Actions（`.github/workflows/release.yml`）。

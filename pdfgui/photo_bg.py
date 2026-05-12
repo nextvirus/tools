@@ -67,7 +67,10 @@ def replace_photo_background(
     try:
         from rembg import remove
     except ImportError as e:
-        raise ImportError('请安装：pip install "rembg[cpu]"') from e
+        hint = '请安装：pip install "rembg[cpu]"'
+        if getattr(sys, "frozen", False):
+            hint += f"（安装包内 rembg 依赖不完整，请用仓库内 scripts/package_tools.py 重新打包。详情: {e}）"
+        raise ImportError(hint) from e
 
     inp = Path(input_path)
     if not inp.is_file():
