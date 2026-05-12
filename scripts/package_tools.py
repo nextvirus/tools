@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -73,6 +74,30 @@ def _reconfigure_stdio() -> None:
             pass
 
 
+def _copy_vosk_models_into_dist(repo: Path) -> None:
+    """将源码树中的 vosk_models 同步进 dist 内每个 _internal（Win/Linux/macOS 通用）。
+
+    部分环境下 PyInstaller 对整目录 --add-data 不可靠，构建后强制复制，避免校验与运行时缺模型。
+    """
+    src = repo / "pdfgui" / "meeting" / "vosk_models"
+    if not (src / _VOSK_CN_MODEL / "am" / "final.mdl").is_file():
+        return
+    dist = repo / "dist"
+    if not dist.is_dir():
+        return
+    internal_roots = sorted({p for p in dist.rglob("_internal") if p.is_dir()})
+    if not internal_roots:
+        print("错误: dist 下未找到 _internal 目录，无法同步 Vosk（需 PyInstaller onedir / macOS .app 布局）。", file=sys.stderr)
+        raise SystemExit(1)
+    for internal in internal_roots:
+        dst = internal / "pdfgui" / "meeting" / "vosk_models"
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(src, dst)
+    print(f"已同步 Vosk 模型到 {len(internal_roots)} 个 _internal 目录。")
+
+
 def main() -> int:
     _reconfigure_stdio()
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
@@ -101,9 +126,9 @@ def main() -> int:
     sep = ";" if sys.platform == "win32" else ":"
     add_human = f"pdfgui/photo/rembg_models/u2net_human_seg.onnx{sep}pdfgui/photo/rembg_models"
     add_u2 = f"pdfgui/photo/rembg_models/u2net.onnx{sep}pdfgui/photo/rembg_models"
-    vosk_root = ROOT / "pdfgui" / "meeting" / "vosk_models" / _VOSK_CN_MODEL
-    # 使用 POSIX 路径，避免 Windows 反斜杠在 PyInstaller --add-data 下解析异常
-    add_vosk = f"{vosk_root.resolve().as_posix()}{sep}pdfgui/meeting/vosk_models"
+    vosk_src = Path("pdfgui/meeting/vosk_models") / _VOSK_CN_MODEL
+    # 使用相对仓库根的路径，避免 macOS BUNDLE 下绝对路径偶发未打进 TOC；cwd 已为 ROOT
+    add_vosk = f"{vosk_src.as_posix()}{sep}pdfgui/meeting/vosk_models"
 
     head: list[str] = [
         sys.executable,
@@ -145,6 +170,8 @@ def main() -> int:
 
     print("运行:", " ".join(cmd))
     subprocess.check_call(cmd, cwd=ROOT, env=env)
+
+    _copy_vosk_models_into_dist(ROOT)
 
     subprocess.check_call([sys.executable, str(ROOT / "scripts" / "verify_bundled_rembg_models.py")], cwd=ROOT, env=env)
     subprocess.check_call([sys.executable, str(ROOT / "scripts" / "verify_bundled_vosk_models.py")], cwd=ROOT, env=env)

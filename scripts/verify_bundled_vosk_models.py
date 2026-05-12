@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Post-build: Vosk CN model must appear under dist as
-pdfgui/meeting/vosk_models/<model>/am/final.mdl
+Post-build: Vosk CN model must appear under dist/ (任意布局，含 macOS .app)：
+存在目录 .../pdfgui/meeting/vosk_models/<model>/ 且含 am/final.mdl
 """
 
 from __future__ import annotations
@@ -23,32 +23,38 @@ def _reconfigure_stdio() -> None:
             pass
 
 
-def _dist_roots(repo: Path) -> list[Path]:
-    out: list[Path] = []
-    d = repo / "dist" / "tools"
-    if d.is_dir():
-        out.append(d)
-    app = repo / "dist" / "tools.app"
-    if app.is_dir():
-        out.append(app)
-    return out
-
-
 def verify(repo: Path = ROOT) -> None:
-    roots = _dist_roots(repo)
-    if not roots:
-        raise FileNotFoundError("No dist/tools or dist/tools.app found.")
+    dist = repo / "dist"
+    if not dist.is_dir():
+        raise FileNotFoundError("No dist/ directory.")
 
-    needle = VOSK_CN_MODEL_NAME.lower()
-    for tree in roots:
-        for p in tree.rglob("final.mdl"):
-            if not p.is_file():
-                continue
-            parts = {x.lower() for x in p.parts}
-            if needle in parts and "vosk_models" in parts and "meeting" in parts:
-                return
+    for d in dist.rglob(VOSK_CN_MODEL_NAME):
+        if not d.is_dir():
+            continue
+        if not (d / "am" / "final.mdl").is_file():
+            continue
+        pos = d.as_posix().lower()
+        if "pdfgui" in pos and "meeting" in pos and "vosk_models" in pos:
+            return
+
+    for p in dist.rglob("final.mdl"):
+        if not p.is_file():
+            continue
+        s = p.as_posix().lower()
+        if (
+            VOSK_CN_MODEL_NAME.lower() in s
+            and "vosk_models" in s
+            and "pdfgui" in s
+            and "meeting" in s
+        ):
+            return
+
+    # 便于 CI 排查：列出 dist 下含 vosk 的路径
+    hints = [p.as_posix() for p in dist.rglob("*vosk*")][:40]
+    extra = "\n".join(hints) if hints else "(未找到任何路径名含 vosk)"
     raise FileNotFoundError(
-        f"Vosk model check FAILED: expected .../pdfgui/meeting/vosk_models/{VOSK_CN_MODEL_NAME}/am/final.mdl in dist."
+        f"Vosk model check FAILED: expected .../pdfgui/meeting/vosk_models/{VOSK_CN_MODEL_NAME}/am/final.mdl under dist/.\n"
+        f"Sample paths containing 'vosk':\n{extra}"
     )
 
 
