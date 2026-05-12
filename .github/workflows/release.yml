@@ -62,14 +62,23 @@ jobs:
       - name: Package tools (fetch rembg models + PyInstaller)
         run: python scripts/package_tools.py
 
-      - name: Create zip
+      - name: Create portable zip (tools.exe + _internal 须整包解压使用)
         shell: pwsh
         run: Compress-Archive -Path dist/tools -DestinationPath tools-windows-amd64.zip -Force
+
+      - name: Install Inno Setup (Windows installer)
+        run: choco install innosetup -y --no-progress
+
+      - name: Build Windows installer (tools-windows-amd64-setup.exe)
+        shell: pwsh
+        run: ./scripts/build_windows_installer.ps1 -Version "${{ github.ref_name }}"
 
       - uses: actions/upload-artifact@v4
         with:
           name: tools-windows-amd64
-          path: tools-windows-amd64.zip
+          path: |
+            tools-windows-amd64.zip
+            dist/tools-windows-amd64-setup.exe
 
   build-macos:
     runs-on: macos-latest
@@ -117,7 +126,7 @@ jobs:
       - name: Collect binaries (artifact 单文件下载可能在子目录)
         run: |
           mkdir -p upload
-          find release-assets -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp -v {} upload/ \;
+          find release-assets -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name 'tools-windows-amd64-setup.exe' \) -exec cp -v {} upload/ \;
           ls -la upload
 
       - uses: softprops/action-gh-release@v2

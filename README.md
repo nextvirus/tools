@@ -27,4 +27,24 @@ pip install -r requirements.txt
 python scripts/package_tools.py
 ```
 
-产出在 `dist/tools`。因照片换底依赖 rembg 整条链（onnxruntime、numpy、scipy、scikit-image、pymatting 等），**安装包体积会明显变大**，属正常现象。发布流程见仓库内 GitHub Actions（`.github/workflows/release.yml`）。
+产出在 `dist/tools`（内含 `tools.exe` 与 `_internal`，**必须同目录**，不能只复制单个 exe）。因照片换底依赖 rembg 整条链（onnxruntime、numpy、scipy、scikit-image、pymatting 等），**体积会明显变大**，属正常现象。
+
+### Windows：安装包（推荐）
+
+单独把 `tools.exe` 拷到别处而未带上同级 `_internal` 时，会报找不到 `python312.dll`（依赖与 Python 运行时在 `_internal` 内）。**推荐**使用 Inno 安装包，一键装到 `%LocalAppData%\Programs\pdf-tools` 并可选桌面快捷方式：
+
+1. 先执行上面的 `python scripts/package_tools.py`。
+2. 安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)，或执行 `choco install innosetup -y`。
+3. 在项目根目录执行：
+
+```powershell
+./scripts/build_windows_installer.ps1 -Version 0.2.0
+```
+
+生成 `dist/tools-windows-amd64-setup.exe`。GitHub Release 里也会附带该文件与便携 zip。
+
+### Windows：便携 zip
+
+解压 `tools-windows-amd64.zip` 后进入 **`tools` 文件夹**（与 `_internal` 同级）再双击 `tools.exe`。
+
+发布流程见 `.github/workflows/release.yml`。
