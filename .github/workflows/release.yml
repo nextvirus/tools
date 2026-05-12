@@ -97,13 +97,20 @@ jobs:
       - name: Package tools (fetch rembg models + PyInstaller)
         run: python scripts/package_tools.py
 
+      - name: Build selectable macOS installer (.pkg)
+        run: |
+          chmod +x scripts/build_macos_modular_pkg.sh
+          bash scripts/build_macos_modular_pkg.sh "${{ github.ref_name }}"
+
       - name: Zip .app
         run: cd dist && zip -ry ../tools-macos.zip tools.app
 
       - uses: actions/upload-artifact@v4
         with:
           name: tools-macos
-          path: tools-macos.zip
+          path: |
+            tools-macos.zip
+            dist/tools-macos-selectable.pkg
 
   publish:
     needs: [build-linux, build-windows, build-macos]
@@ -126,7 +133,7 @@ jobs:
       - name: Collect binaries (artifact 单文件下载可能在子目录)
         run: |
           mkdir -p upload
-          find release-assets -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name 'tools-windows-amd64-setup.exe' \) -exec cp -v {} upload/ \;
+          find release-assets -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name 'tools-windows-amd64-setup.exe' -o -name 'tools-macos-selectable.pkg' \) -exec cp -v {} upload/ \;
           ls -la upload
 
       - uses: softprops/action-gh-release@v2

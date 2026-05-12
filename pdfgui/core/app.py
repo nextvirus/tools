@@ -9,12 +9,12 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
-from .pdf_to_img import pdf_to_images
-from .photo_bg import default_output_path, replace_photo_background, warmup_rembg_session
-from .watermark_pdf import add_watermark
+from pdfgui.pdf.pdf_to_img import pdf_to_images
+from pdfgui.pdf.watermark_pdf import add_watermark
 
-from . import theme
-from .tabs import mount_all_tabs
+from pdfgui.ui import theme
+from pdfgui.runtime_modules import photo_module_available
+from pdfgui.tabs import mount_all_tabs
 
 
 class PdfToolsApp(tk.Tk):
@@ -24,6 +24,7 @@ class PdfToolsApp(tk.Tk):
         self.minsize(560, 420)
         self.geometry("820x780")
         self.configure(bg=theme.U_BG)
+        self._mm_mic = None
 
         try:
             self.call("tk", "scaling", 1.22)
@@ -44,7 +45,7 @@ class PdfToolsApp(tk.Tk):
         tk.Label(titles, text="tools", font=theme.FONT_TITLE, fg=theme.U_TEXT, bg=theme.U_CARD).pack(anchor=tk.W)
         tk.Label(
             titles,
-            text="为 PDF 添加水印、导出页面为图片，或更换照片底色",
+            text="为 PDF 添加水印、导出页面为图片、更换照片底色，或使用麦克风整理会议纪要",
             font=theme.FONT_SUB,
             fg=theme.U_TEXT_SEC,
             bg=theme.U_CARD,
@@ -66,13 +67,16 @@ class PdfToolsApp(tk.Tk):
         def _warm_rembg() -> None:
             def _run() -> None:
                 try:
+                    from pdfgui.photo.photo_bg import warmup_rembg_session
+
                     warmup_rembg_session()
                 except Exception:
                     pass
 
             threading.Thread(target=_run, daemon=True).start()
 
-        self.after(600, _warm_rembg)
+        if photo_module_available():
+            self.after(600, _warm_rembg)
 
     def attach_scale_resize(self, parent: tk.Misc, reserve: int = 200) -> None:
         """改 Scale.length 会连锁触发 Configure；用防抖 + 子控件快照 + 宽度去抖，避免重入与 RecursionError。"""
@@ -123,7 +127,7 @@ class PdfToolsApp(tk.Tk):
         resolution: float,
         label_fmt,
     ) -> None:
-        from . import widgets
+        from pdfgui.ui import widgets
 
         parent.columnconfigure(0, minsize=190, weight=0)
         parent.columnconfigure(1, weight=1)
@@ -255,7 +259,7 @@ class PdfToolsApp(tk.Tk):
             self.bind_scroll_wheel(ch, canvas)
 
     def pick_wm_in(self) -> None:
-        from . import widgets
+        from pdfgui.ui import widgets
 
         widgets.browse_pdf(self.wm_in)
         p = self.wm_in.get().strip()
@@ -264,7 +268,7 @@ class PdfToolsApp(tk.Tk):
             self.wm_out.set(str(src.parent / f"{src.stem}_watermarked.pdf"))
 
     def pick_im_in(self) -> None:
-        from . import widgets
+        from pdfgui.ui import widgets
 
         widgets.browse_pdf(self.im_in)
         p = self.im_in.get().strip()
@@ -273,6 +277,10 @@ class PdfToolsApp(tk.Tk):
             self.im_out.set(str(src.parent / f"{src.stem}_images"))
 
     def _maybe_fill_photo_out(self) -> None:
+        try:
+            from pdfgui.photo.photo_bg import default_output_path
+        except ImportError:
+            return
         inp = self.ph_in.get().strip()
         if not inp or not Path(inp).is_file():
             return
@@ -292,7 +300,7 @@ class PdfToolsApp(tk.Tk):
             self.ph_out.set(cur)
 
     def pick_ph_in(self) -> None:
-        from . import widgets
+        from pdfgui.ui import widgets
 
         p = widgets.pick_raster_image_path()
         if not p:
@@ -383,6 +391,8 @@ class PdfToolsApp(tk.Tk):
 
     def run_photo_bg(self) -> None:
         def job() -> None:
+            from pdfgui.photo.photo_bg import default_output_path, replace_photo_background
+
             inp = self.ph_in.get().strip()
             if not inp:
                 raise ValueError("请选择照片。")
@@ -414,8 +424,125 @@ class PdfToolsApp(tk.Tk):
         messagebox.showinfo("完成", f"已保存:\n{outp}")
         self._ph_btn.configure(state=tk.NORMAL)
 
+    def mm_start_recording(self) -> None:
+        if getattr(self, "_mm_mic", None) is not None:
+            messagebox.showinfo("提示", "已在录音中，请先点击「结束并识别」。")
+            return
+        try:
+            from pdfgui.meeting.mic import MicRecorder
+
+            self._mm_mic = MicRecorder()
+            self._mm_mic.start()
+        except Exception as e:
+            self._mm_mic = None
+            messagebox.showerror("麦克风", str(e))
+            return
+        self.mm_rec_status.set("录音中… 说完一段后请点击「结束并识别」。")
+        self._mm_btn_rec_start.configure(state=tk.DISABLED)
+        self._mm_btn_rec_stop.configure(state=tk.NORMAL)
+        self._mm_btn.configure(state=tk.DISABLED)
+
+    def mm_stop_recording(self) -> None:
+        mic = getattr(self, "_mm_mic", None)
+        if mic is None:
+            messagebox.showinfo("提示", "请先点击「开始录音」。")
+            return
+        self._mm_mic = None
+        path = None
+        try:
+            path = mic.stop()
+        except Exception as e:
+            self._mm_btn_rec_start.configure(state=tk.NORMAL)
+            self._mm_btn_rec_stop.configure(state=tk.DISABLED)
+            self._mm_btn.configure(state=tk.NORMAL)
+            self.mm_rec_status.set("就绪：可分段录音，每段结束后自动转写并追加到下方正文。")
+            messagebox.showerror("录音", str(e))
+            return
+
+        if path is None:
+            self._mm_btn_rec_start.configure(state=tk.NORMAL)
+            self._mm_btn_rec_stop.configure(state=tk.DISABLED)
+            self._mm_btn.configure(state=tk.NORMAL)
+            self.mm_rec_status.set("就绪：可分段录音，每段结束后自动转写并追加到下方正文。")
+            messagebox.showwarning("录音", "录音过短或未采集到数据，请重试。")
+            return
+
+        self.mm_rec_status.set("正在本地识别语音（Vosk）…")
+        self._mm_btn_rec_stop.configure(state=tk.DISABLED)
+        p = path
+
+        def work() -> None:
+            text = ""
+            err: Exception | None = None
+            try:
+                from pdfgui.meeting.mic import transcribe_meeting_wav
+
+                text = transcribe_meeting_wav(p)
+            except Exception as e:
+                err = e
+            finally:
+                try:
+                    p.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            self.after(0, lambda: self._done_mm_transcribe(text, err))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _done_mm_transcribe(self, text: str, err: Exception | None) -> None:
+        self._mm_btn_rec_start.configure(state=tk.NORMAL)
+        self._mm_btn_rec_stop.configure(state=tk.DISABLED)
+        self._mm_btn.configure(state=tk.NORMAL)
+        self.mm_rec_status.set("就绪：可分段录音，每段结束后自动转写并追加到下方正文。")
+        if err is not None:
+            messagebox.showerror("语音识别", str(err))
+            return
+        if text.strip():
+            self.mm_in.insert(tk.END, text.strip() + "\n\n")
+            self.mm_in.see(tk.END)
+
+    def run_meeting_summarize(self) -> None:
+        from pdfgui.meeting.deepseek import DEFAULT_MODEL, summarize_meeting_minutes
+
+        if getattr(self, "_mm_mic", None) is not None:
+            messagebox.showwarning("提示", "请先结束当前录音，再整理会议纪要。")
+            return
+        raw = self.mm_in.get("1.0", tk.END).strip()
+        key = self.mm_api_key.get().strip()
+        model = self.mm_model.get().strip() or DEFAULT_MODEL
+
+        def job() -> None:
+            out = summarize_meeting_minutes(key, raw, model=model)
+            self.after(0, lambda o=out: self._done_mm(o))
+
+        self._mm_btn.configure(state=tk.DISABLED)
+        if hasattr(self, "_mm_btn_rec_start"):
+            self._mm_btn_rec_start.configure(state=tk.DISABLED)
+            self._mm_btn_rec_stop.configure(state=tk.DISABLED)
+
+        def wrap() -> None:
+            try:
+                job()
+            except Exception as e:
+                self.after(0, lambda err=e: self._fail("会议纪要失败", err, self._mm_btn))
+
+        threading.Thread(target=wrap, daemon=True).start()
+
+    def _done_mm(self, text: str) -> None:
+        self.mm_out.configure(state=tk.NORMAL)
+        self.mm_out.delete("1.0", tk.END)
+        self.mm_out.insert("1.0", text)
+        self.mm_out.configure(state=tk.DISABLED)
+        self._mm_btn.configure(state=tk.NORMAL)
+        if hasattr(self, "_mm_btn_rec_start"):
+            self._mm_btn_rec_start.configure(state=tk.NORMAL)
+            self._mm_btn_rec_stop.configure(state=tk.DISABLED)
+
     def _fail(self, title: str, err: Exception, btn: ttk.Button) -> None:
         btn.configure(state=tk.NORMAL)
+        if getattr(self, "_mm_btn", None) is btn and hasattr(self, "_mm_btn_rec_start"):
+            self._mm_btn_rec_start.configure(state=tk.NORMAL)
+            self._mm_btn_rec_stop.configure(state=tk.DISABLED)
         messagebox.showerror(title, str(err))
 
 

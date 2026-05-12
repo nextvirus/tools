@@ -1,5 +1,5 @@
-"""tools 图形界面包：主题、控件、主窗口与各功能标签页。"""
+"""tools 图形界面包：按功能分目录（core / ui / pdf / photo / meeting / tabs）。"""
 
-from .app import PdfToolsApp, main
+from pdfgui.core.app import PdfToolsApp, main
 
 __all__ = ["PdfToolsApp", "main"]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Post-build check: rembg ONNX files must appear under dist as pdfgui/rembg_models/*.onnx
-(same layout as runtime U2NET_HOME). Exits 1 if missing.
+Post-build check: rembg ONNX files must appear under dist as
+pdfgui/photo/rembg_models/*.onnx (same layout as runtime U2NET_HOME). Exits 1 if missing.
 
 Console output is ASCII-only so Windows/GitHub Actions (cp1252) never raises UnicodeEncodeError.
 """
@@ -49,7 +49,7 @@ def verify_bundled_rembg_models(repo: Path = ROOT) -> None:
                 if not p.is_file():
                     continue
                 parts = {x.lower() for x in p.parts}
-                if "rembg_models" in parts and "pdfgui" in parts:
+                if "rembg_models" in parts and "photo" in parts and "pdfgui" in parts:
                     found = True
                     break
             if found:
@@ -59,10 +59,10 @@ def verify_bundled_rembg_models(repo: Path = ROOT) -> None:
 
     if missing:
         msg = (
-            "Bundled rembg model check FAILED. Missing under dist with path pdfgui/rembg_models/: "
+            "Bundled rembg model check FAILED. Missing under dist with path pdfgui/photo/rembg_models/: "
             + ", ".join(missing)
             + f"\nSearched roots: {[str(r) for r in roots]}\n"
-            "Ensure package_tools.py --add-data still ships pdfgui/rembg_models/*.onnx and fetch_rembg_models.py ran."
+            "Ensure package_tools.py --add-data still ships pdfgui/photo/rembg_models/*.onnx and fetch_rembg_models.py ran."
         )
         raise FileNotFoundError(msg)
 
@@ -74,7 +74,7 @@ def main() -> int:
     except FileNotFoundError as e:
         print(str(e), file=sys.stderr)
         return 1
-    print("OK: rembg ONNX models found in dist (pdfgui/rembg_models/*.onnx)")
+    print("OK: rembg ONNX models found in dist (pdfgui/photo/rembg_models/*.onnx)")
     return 0
 
 

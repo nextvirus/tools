@@ -13,7 +13,7 @@ from PIL import Image, ImageOps
 
 def _rembg_models_dir() -> Path:
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        return Path(sys._MEIPASS) / "pdfgui" / "rembg_models"
+        return Path(sys._MEIPASS) / "pdfgui" / "photo" / "rembg_models"
     return Path(__file__).resolve().parent / "rembg_models"
 
 
@@ -40,7 +40,7 @@ _session = None
 
 
 def models_dir() -> Path:
-    """当前使用的 rembg 模型目录（开发为源码旁 rembg_models；打包后为 _MEIPASS 内）。"""
+    """当前使用的 rembg 模型目录（开发为 photo/rembg_models；打包在 _MEIPASS/pdfgui/photo/rembg_models）。"""
     return _rembg_models_dir()
 
 
@@ -76,7 +76,7 @@ def warmup_rembg_session() -> None:
 
 
 def _get_session():
-    """u2net_human_seg 偏人像；权重放在 pdfgui/rembg_models（见 scripts/fetch_rembg_models.py）。"""
+    """u2net_human_seg 偏人像；权重放在 photo/rembg_models（见 scripts/fetch_rembg_models.py）。"""
     global _session
     if _session is not None:
         return _session

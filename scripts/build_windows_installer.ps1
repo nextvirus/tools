@@ -21,6 +21,11 @@ $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
 python (Join-Path $Root "scripts\verify_bundled_rembg_models.py")
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+python (Join-Path $Root "scripts\verify_bundled_vosk_models.py")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+python (Join-Path $Root "scripts\stage_installer_components.py") --platform win32
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $candidates = @(
     "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"

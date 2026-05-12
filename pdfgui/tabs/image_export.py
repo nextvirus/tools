@@ -5,7 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from .. import theme, widgets
+from pdfgui.ui import theme, widgets
 
 
 def build_tab(app, nb: ttk.Notebook) -> None:

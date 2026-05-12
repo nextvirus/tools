@@ -2,8 +2,8 @@
 将 PDF 按页渲染为位图，可选择格式、DPI、页码范围。
 
 命令行（在项目根目录）:
-  python -m pdfgui.pdf_to_img 报告.pdf -o ./out/
-  python -m pdfgui.pdf_to_img 报告.pdf -o ./out/ --format jpg --dpi 200 --pages 1,3-5
+  python -m pdfgui.pdf.pdf_to_img 报告.pdf -o ./out/
+  python -m pdfgui.pdf.pdf_to_img 报告.pdf -o ./out/ --format jpg --dpi 200 --pages 1,3-5
 """
 
 from __future__ import annotations

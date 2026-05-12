@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""将 rembg 用到的 ONNX 权重下载到 pdfgui/rembg_models/，便于离线使用与打包。"""
+"""将 rembg 用到的 ONNX 权重下载到 pdfgui/photo/rembg_models/，便于离线使用与打包。"""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEST = ROOT / "pdfgui" / "rembg_models"
+DEST = ROOT / "pdfgui" / "photo" / "rembg_models"
 
 
 def _reconfigure_stdio() -> None:

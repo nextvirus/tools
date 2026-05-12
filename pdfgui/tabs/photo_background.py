@@ -5,8 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from .. import widgets
-from ..photo_bg import default_output_path
+from pdfgui.ui import widgets
 
 
 def build_tab(app, nb: ttk.Notebook) -> None:
@@ -39,6 +38,8 @@ def build_tab(app, nb: ttk.Notebook) -> None:
     app.form_row(sec_file, 0, "照片路径", e_in, btn=b_in)
 
     def _browse_ph_save() -> None:
+        from pdfgui.photo.photo_bg import default_output_path
+
         inp = app.ph_in.get().strip()
         bg = app.ph_color.get().strip().lower()
         sug = default_output_path(inp, bg) if inp and bg in ("red", "blue", "white") else None

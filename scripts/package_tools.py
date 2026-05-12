@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-本地 / CI 统一打包入口：先把 rembg 模型拉到 pdfgui/rembg_models/，再 PyInstaller 打进 dist。
+本地 / CI 统一打包入口：拉取 rembg ONNX、Vosk 中文模型，再 PyInstaller 打进 dist。
 
-模型不入 GitHub；编译时写入本机目录并随 --add-data 打进安装包。
+大文件不入 Git；CI / 本机打包前由脚本下载并随 --add-data 打入安装包。
 """
 
 from __future__ import annotations
@@ -13,19 +13,31 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# 与 pdfgui.meeting.vosk_config.VOSK_CN_MODEL_NAME 保持一致
+_VOSK_CN_MODEL = "vosk-model-small-cn-0.22"
 
-# rembg 的 bg.py 会导入 onnxruntime / numpy / pymatting / scipy / skimage 等；只 collect rembg 本体在 PyInstaller 下仍会 ImportError
+# rembg 会拉 onnxruntime / numpy / scipy / skimage 等；collect rembg + onnxruntime 后由 PyInstaller 分析子依赖。
+# 不再对 numpy/scipy/skimage 单独 collect-all，可显著减小重复打入的体积（若换底运行报错再恢复）。
 _COLLECT_ALL_PACKAGES = (
     "pymupdf",
     "rembg",
     "onnxruntime",
-    "numpy",
-    "scipy",
-    "skimage",
     "pymatting",
     "pooch",
     "jsonschema",
     "tqdm",
+    "sounddevice",
+    "vosk",
+)
+
+# 常见误收集的大型/测试模块，排除后通常不影响本工具
+_PYINSTALLER_EXCLUDES = (
+    "matplotlib",
+    "pandas",
+    "jupyter",
+    "IPython",
+    "pytest",
+    "doctest",
 )
 
 _HIDDEN_IMPORTS = (
@@ -37,6 +49,19 @@ _HIDDEN_IMPORTS = (
     "onnxruntime",
     "PIL._imagingtk",
     "PIL._tkinter_finder",
+    "pdfgui.core.app",
+    "pdfgui.ui.theme",
+    "pdfgui.ui.widgets",
+    "pdfgui.pdf.watermark_pdf",
+    "pdfgui.pdf.pdf_to_img",
+    "pdfgui.photo.photo_bg",
+    "pdfgui.meeting.settings",
+    "pdfgui.meeting.deepseek",
+    "pdfgui.meeting.mic",
+    "pdfgui.meeting.vosk_config",
+    "pdfgui.runtime_modules",
+    "scipy.io.wavfile",
+    "vosk",
 )
 
 
@@ -56,16 +81,28 @@ def main() -> int:
         cwd=ROOT,
         env=env,
     )
+    subprocess.check_call(
+        [sys.executable, str(ROOT / "scripts" / "fetch_vosk_cn_model.py")],
+        cwd=ROOT,
+        env=env,
+    )
 
-    hseg = ROOT / "pdfgui" / "rembg_models" / "u2net_human_seg.onnx"
-    u2 = ROOT / "pdfgui" / "rembg_models" / "u2net.onnx"
+    hseg = ROOT / "pdfgui" / "photo" / "rembg_models" / "u2net_human_seg.onnx"
+    u2 = ROOT / "pdfgui" / "photo" / "rembg_models" / "u2net.onnx"
     if not hseg.is_file() or not u2.is_file():
         print("缺少 onnx，无法打包。", file=sys.stderr)
         return 1
 
+    vosk_mdl = ROOT / "pdfgui" / "meeting" / "vosk_models" / _VOSK_CN_MODEL / "am" / "final.mdl"
+    if not vosk_mdl.is_file():
+        print("缺少 Vosk 中文模型，无法打包。", file=sys.stderr)
+        return 1
+
     sep = ";" if sys.platform == "win32" else ":"
-    add_human = f"pdfgui/rembg_models/u2net_human_seg.onnx{sep}pdfgui/rembg_models"
-    add_u2 = f"pdfgui/rembg_models/u2net.onnx{sep}pdfgui/rembg_models"
+    add_human = f"pdfgui/photo/rembg_models/u2net_human_seg.onnx{sep}pdfgui/photo/rembg_models"
+    add_u2 = f"pdfgui/photo/rembg_models/u2net.onnx{sep}pdfgui/photo/rembg_models"
+    vosk_root = ROOT / "pdfgui" / "meeting" / "vosk_models" / _VOSK_CN_MODEL
+    add_vosk = f"{vosk_root}{sep}pdfgui/meeting/vosk_models"
 
     head: list[str] = [
         sys.executable,
@@ -83,21 +120,23 @@ def main() -> int:
         "tools",
         "--hidden-import=pdfgui.tabs.watermark",
         "--hidden-import=pdfgui.tabs.image_export",
-        "--hidden-import=pdfgui.watermark_pdf",
-        "--hidden-import=pdfgui.pdf_to_img",
         "--hidden-import=pdfgui.tabs.photo_background",
-        "--hidden-import=pdfgui.photo_bg",
+        "--hidden-import=pdfgui.tabs.meeting_minutes",
     ]
-    for pkg in _COLLECT_ALL_PACKAGES:
-        tail.extend(["--collect-all", pkg])
     for mod in _HIDDEN_IMPORTS:
         tail.append(f"--hidden-import={mod}")
+    for pkg in _COLLECT_ALL_PACKAGES:
+        tail.extend(["--collect-all", pkg])
+    for mod in _PYINSTALLER_EXCLUDES:
+        tail.append(f"--exclude-module={mod}")
     tail.extend(
         [
             "--add-data",
             add_human,
             "--add-data",
             add_u2,
+            "--add-data",
+            add_vosk,
             str(ROOT / "pdf_gui.py"),
         ]
     )
@@ -107,6 +146,17 @@ def main() -> int:
     subprocess.check_call(cmd, cwd=ROOT, env=env)
 
     subprocess.check_call([sys.executable, str(ROOT / "scripts" / "verify_bundled_rembg_models.py")], cwd=ROOT, env=env)
+    subprocess.check_call([sys.executable, str(ROOT / "scripts" / "verify_bundled_vosk_models.py")], cwd=ROOT, env=env)
+    subprocess.check_call(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "stage_installer_components.py"),
+            "--platform",
+            sys.platform,
+        ],
+        cwd=ROOT,
+        env=env,
+    )
     return 0
 
 

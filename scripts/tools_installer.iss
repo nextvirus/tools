@@ -1,10 +1,13 @@
-; Inno Setup 6 — 将 PyInstaller 的 dist\tools（含 tools.exe 与 _internal）打成安装包
-; 构建：先运行 python scripts/package_tools.py，再运行 ISCC（见 build_windows_installer.ps1）
+; Inno Setup 6 — 将 dist\installer\win 下按模块拆分的目录合并安装到 {app}
+; 构建：python scripts/package_tools.py（会生成 staging）后，再运行 build_windows_installer.ps1
 ; 命令行覆盖版本： ISCC /DMyAppVersion=0.2.0 tools_installer.iss
 
 #ifndef MyAppVersion
   #define MyAppVersion "0.0.0"
 #endif
+
+#include "..\dist\installer\win\component_sizes.inc"
+
 #define MyAppName "tools"
 #define MyAppPublisher "tools"
 #define MyAppExeName "tools.exe"
@@ -28,15 +31,25 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 CloseApplications=no
 
-; 使用 compiler:Default.isl（英文），CI 上 choco 安装的 Inno 常不含 ChineseSimplified.isl
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Types]
+Name: "full"; Description: "All modules / 全部（解压合计约 {#SizeTotalMB} MB）"
+Name: "compact"; Description: "Core only / 仅核心 PDF（约 {#SizeCoreMB} MB）"
+
+[Components]
+Name: "core"; Description: "Core / 核心 — PDF watermark, export images（约 {#SizeCoreMB} MB）"; Types: full compact; Flags: fixed
+Name: "photo"; Description: "Photo / 照片换底 — rembg, onnx（约 {#SizePhotoMB} MB）"; Types: full
+Name: "meeting"; Description: "Meeting / 会议纪要 — mic + Vosk local ASR（约 {#SizeMeetingMB} MB）"; Types: full
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\dist\tools\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\installer\win\core\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: core
+Source: "..\dist\installer\win\photo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: photo
+Source: "..\dist\installer\win\meeting\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: meeting
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

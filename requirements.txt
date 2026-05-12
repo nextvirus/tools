@@ -3,5 +3,8 @@ pymupdf>=1.24.0
 Pillow>=10.3.0
 # rembg 本体不含 onnxruntime，须加 [cpu] 才能在无 GPU 的办公机上跑换底
 rembg[cpu]>=2.0.50
+# 会议纪要：麦克风 + 本地 Vosk 中文识别（离线）+ DeepSeek 整理（需联网与 API Key）
+sounddevice>=0.4.6
+vosk>=0.3.45
 # 打安装包（GitHub Actions / 本机 PyInstaller）；仅运行程序时也可装，体积略增
 pyinstaller>=6.3.0

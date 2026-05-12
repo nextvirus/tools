@@ -9,5 +9,7 @@ build/
 release/
 
 # rembg ONNX（体积大，用 scripts/fetch_rembg_models.py 拉取；打包前 CI 会下载）
-pdfgui/rembg_models/*.onnx
+pdfgui/photo/rembg_models/*.onnx
 
+# Vosk 中文模型（体积大，用 scripts/fetch_vosk_cn_model.py 拉取）
+pdfgui/meeting/vosk_models/

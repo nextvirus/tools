@@ -6,7 +6,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, ttk
 
-from .theme import ENTRY_CHAR_WIDTH, FONT_ENTRY
+from pdfgui.ui.theme import ENTRY_CHAR_WIDTH, FONT_ENTRY
 
 __all__ = [
     "entry_line",

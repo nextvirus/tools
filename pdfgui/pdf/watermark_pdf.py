@@ -2,7 +2,7 @@
 给 PDF 添加文字水印（斜向平铺，支持透明度与字号等）。
 
 安装: pip install -r requirements.txt
-命令行（在项目根目录）: python -m pdfgui.watermark_pdf 输入.pdf 输出.pdf -t "内部资料"
+命令行（在项目根目录）: python -m pdfgui.pdf.watermark_pdf 输入.pdf 输出.pdf -t "内部资料"
 """
 
 from __future__ import annotations
