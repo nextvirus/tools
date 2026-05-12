@@ -495,7 +495,7 @@ class PdfToolsApp(tk.Tk):
         self._mm_btn.configure(state=tk.NORMAL)
         self.mm_rec_status.set("就绪：可分段录音，每段结束后自动转写并追加到下方正文。")
         if err is not None:
-            messagebox.showerror("语音识别", str(err))
+            messagebox.showerror("语音转写", str(err))
             return
         if text.strip():
             self.mm_in.insert(tk.END, text.strip() + "\n\n")

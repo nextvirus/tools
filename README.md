@@ -29,7 +29,7 @@ pip install -r requirements.txt
 python scripts/package_tools.py
 ```
 
-产出在 `dist/tools`（内含 `tools.exe` 与 `_internal`，**必须同目录**，不能只复制单个 exe）。`package_tools.py` 在 PyInstaller 结束后会校验 `dist` 内 rembg 的 `.onnx` 与 **Vosk 中文模型**是否齐全；**缺失任一则失败退出**。因照片换底依赖 rembg 整条链（onnxruntime、numpy、scipy、scikit-image、pymatting 等），**体积会明显变大**；打包脚本已减少对 numpy/scipy/skimage 的重复 `collect-all` 并排除常见无关大包（如 matplotlib），在可运行前提下尽量缩小体积。
+产出在 `dist/tools`（内含 `tools.exe` 与 `_internal`，**必须同目录**，不能只复制单个 exe）。`package_tools.py` 会先拉取 **Vosk 中文模型**（`scripts/fetch_vosk_cn_model.py`），再通过 PyInstaller 的 `--add-data` 把 `pdfgui/meeting/vosk_models/<模型名>/` **整目录打进** `_internal/pdfgui/meeting/vosk_models/`，运行时从 `sys._MEIPASS` 读取，无需用户再下模型。打包结束后会校验 rembg 的 `.onnx` 与上述 Vosk 的 `am/final.mdl` 是否已在 `dist` 内；**缺失任一则失败退出**。因照片换底依赖 rembg 整条链（onnxruntime、numpy、scipy、scikit-image、pymatting 等），**体积会明显变大**；打包脚本已减少对 numpy/scipy/skimage 的重复 `collect-all` 并排除常见无关大包（如 matplotlib），在可运行前提下尽量缩小体积。
 
 ### Windows：安装包（推荐）
 

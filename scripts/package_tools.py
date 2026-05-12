@@ -102,7 +102,8 @@ def main() -> int:
     add_human = f"pdfgui/photo/rembg_models/u2net_human_seg.onnx{sep}pdfgui/photo/rembg_models"
     add_u2 = f"pdfgui/photo/rembg_models/u2net.onnx{sep}pdfgui/photo/rembg_models"
     vosk_root = ROOT / "pdfgui" / "meeting" / "vosk_models" / _VOSK_CN_MODEL
-    add_vosk = f"{vosk_root}{sep}pdfgui/meeting/vosk_models"
+    # 使用 POSIX 路径，避免 Windows 反斜杠在 PyInstaller --add-data 下解析异常
+    add_vosk = f"{vosk_root.resolve().as_posix()}{sep}pdfgui/meeting/vosk_models"
 
     head: list[str] = [
         sys.executable,

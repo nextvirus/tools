@@ -151,5 +151,9 @@ def transcribe_meeting_wav(wav_path: Path) -> str:
 
     text = "".join(parts).replace(" ", "").strip()
     if not text:
-        raise ValueError("未能识别出有效语音，请靠近麦克风、提高音量或缩短片段后重试。")
+        raise ValueError(
+            "未能识别出有效语音。可检查：① Windows「设置 → 系统 → 声音」里默认输入设备是否选对了"
+            "（头戴式耳机自带麦克风一般可用，并非不能戴耳机）；② 麦克风输入音量是否过低，尽量靠近说话；"
+            "③ 每段连续说一两句再点「结束」，避免只有极短气声或静音。"
+        )
     return text
