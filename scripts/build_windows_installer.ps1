@@ -42,6 +42,10 @@ foreach ($sub in @("runtime", "pdf", "photo", "meeting")) {
         Write-Error "staging 目录为空（至少应有占位文件）: $d"
     }
 }
+$stagedMainExe = Join-Path $winStage "runtime\tools.exe"
+if (-not (Test-Path $stagedMainExe)) {
+    Write-Error "staging 中缺少 runtime\\tools.exe，安装包无法释放主程序。请确认 dist\\tools\\tools.exe 存在并重新执行 stage_installer_components。"
+}
 
 $candidates = @(
     "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"

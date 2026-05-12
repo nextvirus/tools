@@ -46,7 +46,9 @@ Name: "meeting"; Description: "[4] Meeting / 会议纪要 — microphone + Vosk 
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\dist\installer\win\runtime\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: runtime
+; 根目录的 tools.exe 必须单独列出：仅用 runtime\* + recursesubdirs 时，部分 Inno 版本不会把该根文件打进包，导致装完 [Run] 报 CreateProcess code 2
+Source: "..\dist\installer\win\runtime\tools.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: runtime
+Source: "..\dist\installer\win\runtime\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "tools.exe"; Components: runtime
 Source: "..\dist\installer\win\pdf\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: pdf
 Source: "..\dist\installer\win\photo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: photo
 Source: "..\dist\installer\win\meeting\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: meeting
@@ -56,4 +58,4 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent skipifdoesntexist
