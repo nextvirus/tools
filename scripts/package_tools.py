@@ -60,7 +60,9 @@ _HIDDEN_IMPORTS = (
     "pdfgui.meeting.deepseek",
     "pdfgui.meeting.mic",
     "pdfgui.meeting.vosk_config",
+    "pdfgui.meeting._pyinstaller_entry",
     "pdfgui.runtime_modules",
+    "sounddevice",
     "scipy.io.wavfile",
     "vosk",
 )

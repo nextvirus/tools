@@ -51,8 +51,11 @@ _PHOTO_MARKERS: tuple[str, ...] = (
 _MEETING_MARKERS: tuple[str, ...] = (
     "/sounddevice/",
     "\\sounddevice\\",
+    "_sounddevice",
     "/vosk/",
     "\\vosk\\",
+    "vosk.",  # e.g. speech_recognition/recognizers/vosk.py
+    "libvosk",
     "vosk_models",
     "pocketsphinx",
     "/flac-",
