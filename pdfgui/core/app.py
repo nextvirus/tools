@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import threading
+import time
 from collections.abc import Callable
 from typing import Literal, cast
 import tkinter as tk
@@ -36,6 +37,8 @@ class PdfToolsApp(tk.Tk):
             pass
 
         theme.apply_ttk_theme(self)
+
+        self._build_help_menu()
 
         top_wrap = ttk.Frame(self, style="TFrame", padding=(16, 12, 16, 0))
         top_wrap.pack(fill=tk.X)
@@ -72,7 +75,7 @@ class PdfToolsApp(tk.Tk):
 
         self._module_status = ttk.Label(
             body,
-            text="正在检测可选模块（各模块后台加载，就绪后依次出现标签）…",
+            text="正在检测可选模块（仅更新本行状态；各功能标签就绪后不再反复刷新下方区域）…",
             style="TLabel",
             wraplength=760,
         )
@@ -104,6 +107,84 @@ class PdfToolsApp(tk.Tk):
                     parts.append(f"{label}✗")
             return "模块检测: " + "  ".join(parts)
 
+        def _sync_canvas_embedded(canvas: tk.Canvas, ww: int, wh: int) -> None:
+            """与 scroll_tab_shell 一致：保证嵌入 inner 的宽度与 scrollregion（部分环境下仅靠 <Configure> 不会触发）。"""
+            try:
+                ww = max(int(ww), 200)
+                wh = max(int(wh), 80)
+                for item in canvas.find_withtag("all"):
+                    if canvas.type(item) == "window":
+                        canvas.itemconfigure(item, width=ww)
+                        break
+                canvas.update_idletasks()
+                bbox = canvas.bbox("all")
+                if bbox:
+                    canvas.configure(scrollregion=bbox)
+                canvas.yview_moveto(0)
+            except tk.TclError:
+                pass
+
+        def _refresh_notebook_layout(*, deep_notebook_repaint: bool = False) -> None:
+            """挂载后 / 探测结束后强制布局。默认只做 Canvas 与几何同步；仅在必要时 deep 重绘 Notebook（会短暂切页）。"""
+            try:
+                tabs = nb.tabs()
+                if not tabs:
+                    return
+                try:
+                    cur = nb.select()
+                    if not cur:
+                        nb.select(tabs[0])
+                except tk.TclError:
+                    nb.select(tabs[0])
+            except tk.TclError:
+                return
+
+            nb.update_idletasks()
+            self.update_idletasks()
+            fbw = max(int(body.winfo_width()) - 48, 200)
+            fbh = max(int(body.winfo_height()) - 80, 160)
+
+            def kick_shell(shell: tk.Misc) -> None:
+                for w in shell.winfo_children():
+                    if isinstance(w, tk.Canvas):
+                        try:
+                            ww = int(w.winfo_width())
+                            wh = int(w.winfo_height())
+                            if ww < 8:
+                                ww = fbw
+                            if wh < 8:
+                                wh = fbh
+                            w.event_generate("<Configure>", width=ww, height=wh)
+                            _sync_canvas_embedded(w, ww, wh)
+                        except tk.TclError:
+                            pass
+                    else:
+                        kick_shell(w)
+
+            for tid in nb.tabs():
+                try:
+                    kick_shell(nb.nametowidget(tid))
+                except tk.TclError:
+                    pass
+
+            # 仅在「全部探测完、Notebook 已挪到首行」后的补钉阶段使用：会短暂切换标签，观感像刷新当前页
+            if deep_notebook_repaint:
+                try:
+                    cur = nb.select()
+                    last = nb.tabs()[-1]
+                    if len(nb.tabs()) > 1 and cur:
+                        nb.select(last)
+                        nb.select(cur)
+                except tk.TclError:
+                    pass
+                try:
+                    self.update()
+                except tk.TclError:
+                    pass
+
+            nb.update_idletasks()
+            self.update_idletasks()
+
         def _maybe_finalize() -> None:
             if any(self._probe_progress[k] is None for k in ("pdf", "photo", "meeting")):
                 return
@@ -122,6 +203,10 @@ class PdfToolsApp(tk.Tk):
             )
             install_optional_modules_probe(probe)
             if not (probe.pdf or probe.photo or probe.meeting):
+                try:
+                    nb.grid_remove()
+                except tk.TclError:
+                    pass
                 ttk.Label(
                     body,
                     text="未检测到任一可选模块（PDF / 照片换底 / 会议纪要）。"
@@ -129,6 +214,18 @@ class PdfToolsApp(tk.Tk):
                     style="TLabel",
                     wraplength=760,
                 ).grid(row=0, column=0, sticky=tk.W, pady=(0, 8))
+            else:
+                # 去掉状态行后把 Notebook 提到首行并占满高度，避免仍留在 row=1 时客户区高度为 0 导致「有标签无内容」
+                body.rowconfigure(0, weight=1)
+                body.rowconfigure(1, weight=0)
+                try:
+                    nb.grid_forget()
+                except tk.TclError:
+                    pass
+                nb.grid(row=0, column=0, sticky=tk.NSEW)
+                # 探测阶段不再动 Notebook；此处仅因 grid 挪位做一次浅同步 + 稍后一次深钉，避免反复扫下面各页
+                self.after_idle(lambda: _refresh_notebook_layout(deep_notebook_repaint=False))
+                self.after(220, lambda: _refresh_notebook_layout(deep_notebook_repaint=True))
             if probe.photo:
                 self.after(600, _warm_rembg)
 
@@ -163,12 +260,72 @@ class PdfToolsApp(tk.Tk):
         _spawn_try("photo", try_import_photo)
         _spawn_try("meeting", try_import_meeting)
 
-    def attach_scale_resize(self, parent: tk.Misc, reserve: int = 200) -> None:
+        # 每天最多静默检查一次 GitHub Latest（需配置 GITHUB_REPO）
+        self.after(12_000, self._maybe_periodic_update_check)
+
+    def _build_help_menu(self) -> None:
+        mb = tk.Menu(self)
+        self.config(menu=mb)
+        help_m = tk.Menu(mb, tearoff=0)
+        mb.add_cascade(label="帮助", menu=help_m)
+        help_m.add_command(label="检查更新…", command=self._on_menu_check_update)
+
+    def _on_menu_check_update(self) -> None:
+        threading.Thread(target=self._check_update_thread, args=(True,), daemon=True).start()
+
+    def _maybe_periodic_update_check(self) -> None:
+        from pdfgui import update_check as uc
+
+        if not uc.should_run_periodic_auto_check():
+            return
+        threading.Thread(target=self._check_update_thread, args=(False,), daemon=True).start()
+
+    def _check_update_thread(self, interactive: bool) -> None:
+        from pdfgui import update_check as uc
+
+        res = uc.check_github_release()
+
+        def _apply() -> None:
+            st = uc.load_update_state()
+            st["last_auto_check_ts"] = time.time()
+            if not res.ok:
+                uc.save_update_state(st)
+                if interactive:
+                    messagebox.showerror("检查更新", res.message)
+                return
+            assert res.latest_tag is not None
+            newer = uc.is_remote_newer(res.latest_tag, res.current)
+            if interactive:
+                if newer:
+                    if messagebox.askyesno(
+                        "发现新版本",
+                        f"当前版本：{res.current}\n最新版本：{res.latest_tag}\n\n是否在浏览器中打开 Release 页面？",
+                    ):
+                        uc.open_release_page(res.latest_url)
+                else:
+                    messagebox.showinfo(
+                        "检查更新",
+                        f"当前已是最新版本（{res.current}）。\nGitHub Latest 标签：{res.latest_tag}",
+                    )
+                uc.save_update_state(st)
+                return
+            if newer and res.latest_tag != st.get("last_notified_tag"):
+                if messagebox.askyesno(
+                    "发现新版本",
+                    f"当前版本：{res.current}\n最新 Release：{res.latest_tag}\n\n是否打开浏览器查看下载？",
+                ):
+                    uc.open_release_page(res.latest_url)
+                st["last_notified_tag"] = res.latest_tag
+            uc.save_update_state(st)
+
+        self.after(0, _apply)
+
+    def attach_scale_resize(self, parent: ttk.Frame, *, reserve: int = 200) -> None:
         """改 Scale.length 会连锁触发 Configure；用防抖 + 子控件快照 + 宽度去抖，避免重入与 RecursionError。"""
         last_w = [-1]
         debounce_id: list[int | None] = [None]
 
-        def _apply() -> None:
+        def _apply_resize() -> None:
             debounce_id[0] = None
             try:
                 W = int(parent.winfo_width())
@@ -197,7 +354,7 @@ class PdfToolsApp(tk.Tk):
                     self.after_cancel(debounce_id[0])
                 except tk.TclError:
                     pass
-            debounce_id[0] = self.after(50, _apply)
+            debounce_id[0] = self.after(50, _apply_resize)
 
         parent.bind("<Configure>", _on_configure, add="+")
         self.after_idle(_on_configure)

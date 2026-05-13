@@ -62,6 +62,8 @@ _HIDDEN_IMPORTS = (
     "pdfgui.meeting.vosk_config",
     "pdfgui.meeting._pyinstaller_entry",
     "pdfgui.runtime_modules",
+    "pdfgui.version",
+    "pdfgui.update_check",
     "sounddevice",
     "scipy.io.wavfile",
     "vosk",

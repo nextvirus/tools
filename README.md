@@ -20,6 +20,12 @@ python pdf_gui.py
 - **照片换底**依赖 `rembg[cpu]`（CPU 版 onnxruntime）。模型文件会打进安装包/绿色版目录（`pdfgui/photo/rembg_models` 下的 `.onnx`）；**第一次换底仍可能较慢**（加载 onnxruntime、读入 ONNX、首次推理），第二次起会快很多；程序启动后会在后台尝试预加载模型以缩短首次等待。
 - 部分能力也可在项目根目录用模块方式调用，例如：`python -m pdfgui.pdf.watermark_pdf`、`python -m pdfgui.pdf.pdf_to_img`（见 `pdf_gui.py` 顶部注释）。
 
+### 检查更新（GitHub Release）
+
+- 菜单 **帮助 → 检查更新…** 会请求 GitHub **`nextvirus/tools`** 的 `releases/latest`（仅检测，**不自动下载安装**；可选择在浏览器打开 Release 页）。
+- 发版时请在 **`pdfgui/version.py`** 将 **`APP_VERSION`** 与 tag 对齐（如 `v0.3.1` → `"0.3.1"`）。Fork 自建 Release 时可用环境变量 **`TOOLS_GITHUB_REPO`**（`用户名/仓库名`）覆盖默认官方仓库。
+- 启动约 **12 秒后**会尝试**静默检查**（同一机器默认 **24 小时内**只自动请求一次 API；同一 Release 标签不会重复弹窗）。
+
 ## 打包（可选）
 
 在本机生成带依赖与模型的安装目录时：

@@ -114,11 +114,12 @@ def apply_ttk_theme(root: tk.Tk) -> None:
         foreground=[("readonly", U_TEXT), ("!disabled", U_TEXT)],
     )
 
+    # 不设 tabmargins：在 Windows + 高 DPI / tk scaling 下，非默认 tabmargins 易触发
+    # 标签行与客户区叠画或重影。
     style.configure(
         "TNotebook",
         background=U_BG,
         borderwidth=0,
-        tabmargins=[8, 4, 0, 0],
     )
     style.configure(
         "TNotebook.Tab",
