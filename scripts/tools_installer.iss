@@ -37,18 +37,19 @@ AlwaysShowComponentsList=yes
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Components]
-Name: "runtime"; Description: "[1] Runtime / 运行环境 — app shell + shared libraries（约 {#SizeRuntimeMB} MB）"; Flags: fixed
-Name: "pdf"; Description: "[2] PDF / 水印与导出图片 — PyMuPDF（约 {#SizePdfMB} MB）"
-Name: "photo"; Description: "[3] Photo / 照片换底 — rembg + ONNX + portrait models（约 {#SizePhotoMB} MB）"
-Name: "meeting"; Description: "[4] Meeting / 会议纪要 — microphone + Vosk offline Chinese ASR + DeepSeek tab（约 {#SizeMeetingMB} MB）"
+; 不含 runtime：tools.exe 与运行底座见下方 [Files]（无 Components），始终安装，避免用户取消勾选后无主程序
+Name: "pdf"; Description: "[1] PDF / 水印与导出图片 — PyMuPDF（约 {#SizePdfMB} MB）"
+Name: "photo"; Description: "[2] Photo / 照片换底 — rembg + ONNX + portrait models（约 {#SizePhotoMB} MB）"
+Name: "meeting"; Description: "[3] Meeting / 会议纪要 — microphone + Vosk offline Chinese ASR + DeepSeek tab（约 {#SizeMeetingMB} MB）"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; 根目录的 tools.exe 必须单独列出：仅用 runtime\* + recursesubdirs 时，部分 Inno 版本不会把该根文件打进包，导致装完 [Run] 报 CreateProcess code 2
-Source: "..\dist\installer\win\runtime\tools.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: runtime
-Source: "..\dist\installer\win\runtime\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "tools.exe"; Components: runtime
+; 运行底座始终安装（不写 Components），与 zip 完整包一致；仅 PDF / 照片 / 会议为可选模块
+; 根目录 tools.exe 单独列出，避免仅用 runtime\* + recursesubdirs 时漏装主程序
+Source: "..\dist\installer\win\runtime\tools.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\installer\win\runtime\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "tools.exe"
 Source: "..\dist\installer\win\pdf\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: pdf
 Source: "..\dist\installer\win\photo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: photo
 Source: "..\dist\installer\win\meeting\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: meeting

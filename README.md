@@ -33,7 +33,7 @@ python scripts/package_tools.py
 
 ### Windows：安装包（推荐）
 
-单独把 `tools.exe` 拷到别处而未带上同级 `_internal` 时，会报找不到 `python312.dll`（依赖与 Python 运行时在 `_internal` 内）。**推荐**使用 Inno 安装包，一键装到 `%LocalAppData%\Programs\tools` 并可选桌面快捷方式。安装向导会出现 **「Select components」** 页，**逐项列出**：[1] 运行环境（必选）、[2] PDF（水印与导出图片）、[3] 照片换底、[4] 会议纪要；每项带 **约占用 MB**（解压后，由 `scripts/stage_installer_components.py` 统计）。除运行环境外，其余模块可取消勾选以减小安装体积。
+单独把 `tools.exe` 拷到别处而未带上同级 `_internal` 时，会报找不到 `python312.dll`（依赖与 Python 运行时在 `_internal` 内）。**推荐**使用 Inno 安装包，一键装到 `%LocalAppData%\Programs\tools` 并可选桌面快捷方式。安装向导会出现 **「Select components」** 页：**`tools.exe` 与运行底座（原 runtime 桶）始终安装**，不可取消；仅 **[1] PDF**、[2] 照片换底、[3] 会议纪要 三项可勾选，每项带 **约占用 MB**（解压后，由 `scripts/stage_installer_components.py` 统计），取消勾选可减小安装体积。
 
 1. 先执行上面的 `python scripts/package_tools.py`。
 2. 安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)，或执行 `choco install innosetup -y`。
@@ -52,12 +52,12 @@ python scripts/package_tools.py
 ### macOS：zip、pkg 与 dmg
 
 - **`tools-macos.zip`**：里面是完整的 **`tools.app`**，解压后双击即可用（与很多人习惯的「dmg 里拖一个 app」**效果相同**，只是少了一层磁盘映像外壳）。
-- **`tools-macos-selectable.pkg`**：苹果原生的**安装包向导**，用来实现「安装时勾选运行环境 / PDF / 换底 / 会议纪要」并显示各模块约占用体积；**不是 dmg**，因为 **`.pkg` 才支持**这种分组件安装流程。
+- **`tools-macos-selectable.pkg`**：苹果原生的**安装包向导**，用来实现「安装时勾选 **PDF / 换底 / 会议纪要**」等可选子包并显示各模块约占用体积（**运行底座随主应用一并安装**，与 Windows 一致）；**不是 dmg**，因为 **`.pkg` 才支持**这种分组件安装流程。
 - **`.dmg`**：本质是**磁盘映像**，常见用法是把 `.app` 放进 dmg 里方便用户拖到「应用程序」。本仓库 **CI 未自动生成 dmg**（避免多一步签名与体积）；若你需要 dmg，可在本机用 `hdiutil` 或 [create-dmg](https://github.com/create-dmg/create-dmg) 把解压出的 `tools.app` 打成镜像即可。
 
 #### 可选模块安装包（.pkg）详情
 
-Release 除 `tools-macos.zip` 外，还提供 **`tools-macos-selectable.pkg`**：安装器中会列出 **Runtime（必选）**、**PDF / 水印与导出图片**、**Photo / 照片换底**、**Meeting / 会议纪要** 四个子包，可取消勾选不需要的模块；说明文字中的 MB 数为 **解压后约占用**，与 Windows 同源脚本统计。未安装的模块在应用内不会显示对应标签页。
+Release 除 `tools-macos.zip` 外，还提供 **`tools-macos-selectable.pkg`**：安装器中 **Runtime 子包必选且默认隐藏**，可选 **PDF / 照片换底 / 会议纪要** 三个子包，可取消勾选不需要的模块；说明文字中的 MB 数为 **解压后约占用**，与 Windows 同源脚本统计。未安装的模块在应用内不会显示对应标签页。
 
 本地构建：在 macOS 上先执行 `python scripts/package_tools.py`，再执行 `bash scripts/build_macos_modular_pkg.sh 0.2.0`（脚本内会再次执行 `stage_installer_components.py` 并写入与版本一致的 `distribution.xml`）。若仅双击 `.app` 使用便携 zip，则始终为完整功能。
 
