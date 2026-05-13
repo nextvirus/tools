@@ -33,7 +33,7 @@ python scripts/package_tools.py
 
 ### Windows：安装包（推荐）
 
-单独把 `tools.exe` 拷到别处而未带上同级 `_internal` 时，会报找不到 `python312.dll`（依赖与 Python 运行时在 `_internal` 内）。**推荐**使用 Inno 安装包，一键装到 `%LocalAppData%\Programs\tools` 并可选桌面快捷方式。安装向导会出现 **「Select components」** 页：**`tools.exe` 与运行底座（原 runtime 桶）始终安装**，不可取消；仅 **[1] PDF**、[2] 照片换底、[3] 会议纪要 三项可勾选，每项带 **约占用 MB**（解压后，由 `scripts/stage_installer_components.py` 统计），取消勾选可减小安装体积。
+单独把 `tools.exe` 拷到别处而未带上同级 `_internal` 时，会报找不到 `python312.dll`（依赖与 Python 运行时在 `_internal` 内）。**推荐**使用 Inno 安装包，一键装到 `%LocalAppData%\Programs\tools` 并可选桌面快捷方式。安装向导为 **「Select components」** 一页式勾选：**无 Full / Compact / Custom 安装类型下拉**，仅列出 **[1] PDF**、[2] 照片换底、[3] 会议纪要；**`tools.exe` 与运行底座始终安装**（不写进可选项）。每项带 **约占用 MB**（解压后，由 `scripts/stage_installer_components.py` 统计），取消勾选可减小安装体积。
 
 1. 先执行上面的 `python scripts/package_tools.py`。
 2. 安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)，或执行 `choco install innosetup -y`。

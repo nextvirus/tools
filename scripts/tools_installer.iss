@@ -30,17 +30,20 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 CloseApplications=no
-; 不设 [Types] 时 Inno 会隐式创建 full/compact/custom（含 iscustom），用户仍可逐项勾选组件
+; 仅定义一个 iscustom 的 [Types]，避免出现 Full / Compact / Custom 下拉；安装逻辑等同「只选组件」
 AlwaysShowComponentsList=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[Types]
+Name: "custom"; Description: "Optional modules / 可选模块（主程序与运行底座将始终安装）"; Flags: iscustom
+
 [Components]
 ; 不含 runtime：tools.exe 与运行底座见下方 [Files]（无 Components），始终安装，避免用户取消勾选后无主程序
-Name: "pdf"; Description: "[1] PDF / 水印与导出图片 — PyMuPDF（约 {#SizePdfMB} MB）"
-Name: "photo"; Description: "[2] Photo / 照片换底 — rembg + ONNX + portrait models（约 {#SizePhotoMB} MB）"
-Name: "meeting"; Description: "[3] Meeting / 会议纪要 — microphone + Vosk offline Chinese ASR + DeepSeek tab（约 {#SizeMeetingMB} MB）"
+Name: "pdf"; Description: "[1] PDF / 水印与导出图片 — PyMuPDF（约 {#SizePdfMB} MB）"; Types: custom
+Name: "photo"; Description: "[2] Photo / 照片换底 — rembg + ONNX + portrait models（约 {#SizePhotoMB} MB）"; Types: custom
+Name: "meeting"; Description: "[3] Meeting / 会议纪要 — microphone + Vosk offline Chinese ASR + DeepSeek tab（约 {#SizeMeetingMB} MB）"; Types: custom
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
