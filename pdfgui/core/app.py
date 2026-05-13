@@ -4,14 +4,21 @@ from __future__ import annotations
 
 import sys
 import threading
+from collections.abc import Callable
 from typing import Literal, cast
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
 from pdfgui.ui import theme
-from pdfgui.runtime_modules import photo_module_available
-from pdfgui.tabs import mount_all_tabs
+from pdfgui.runtime_modules import (
+    OptionalModulesProbe,
+    install_optional_modules_probe,
+    try_import_meeting,
+    try_import_pdf,
+    try_import_photo,
+)
+from pdfgui.tabs import mount_meeting_tab, mount_pdf_tabs, mount_photo_tab
 
 
 class PdfToolsApp(tk.Tk):
@@ -54,12 +61,25 @@ class PdfToolsApp(tk.Tk):
         body = ttk.Frame(self, padding=(16, 12, 16, 16))
         body.pack(fill=tk.BOTH, expand=True)
         body.columnconfigure(0, weight=1)
-        body.rowconfigure(0, weight=1)
+        body.rowconfigure(1, weight=1)
+
+        self._probe_progress: dict[str, bool | None] = {"pdf": None, "photo": None, "meeting": None}
+        self._probe_errors: dict[str, Exception] = {}
+        self._mount_pdf_tabs_done = False
+        self._mount_photo_tab_done = False
+        self._mount_meeting_tab_done = False
+        self._optional_modules_finalized = False
+
+        self._module_status = ttk.Label(
+            body,
+            text="正在检测可选模块（各模块后台加载，就绪后依次出现标签）…",
+            style="TLabel",
+            wraplength=760,
+        )
+        self._module_status.grid(row=0, column=0, sticky=tk.W, pady=(0, 8))
 
         nb = ttk.Notebook(body)
-        nb.grid(row=0, column=0, sticky=tk.NSEW)
-
-        mount_all_tabs(self, nb)
+        nb.grid(row=1, column=0, sticky=tk.NSEW)
 
         def _warm_rembg() -> None:
             def _run() -> None:
@@ -72,8 +92,76 @@ class PdfToolsApp(tk.Tk):
 
             threading.Thread(target=_run, daemon=True).start()
 
-        if photo_module_available():
-            self.after(600, _warm_rembg)
+        def _status_line() -> str:
+            parts: list[str] = []
+            for key, label in (("pdf", "PDF"), ("photo", "照片"), ("meeting", "会议")):
+                v = self._probe_progress[key]
+                if v is None:
+                    parts.append(f"{label}…")
+                elif v:
+                    parts.append(f"{label}✓")
+                else:
+                    parts.append(f"{label}✗")
+            return "模块检测: " + "  ".join(parts)
+
+        def _maybe_finalize() -> None:
+            if any(self._probe_progress[k] is None for k in ("pdf", "photo", "meeting")):
+                return
+            if self._optional_modules_finalized:
+                return
+            self._optional_modules_finalized = True
+            try:
+                self._module_status.destroy()
+            except tk.TclError:
+                pass
+            probe = OptionalModulesProbe(
+                pdf=bool(self._probe_progress["pdf"]),
+                photo=bool(self._probe_progress["photo"]),
+                meeting=bool(self._probe_progress["meeting"]),
+                errors=dict(self._probe_errors),
+            )
+            install_optional_modules_probe(probe)
+            if not (probe.pdf or probe.photo or probe.meeting):
+                ttk.Label(
+                    body,
+                    text="未检测到任一可选模块（PDF / 照片换底 / 会议纪要）。"
+                    "若为模块化安装，请在安装向导中勾选对应项；主程序与运行底座已就绪。",
+                    style="TLabel",
+                    wraplength=760,
+                ).grid(row=0, column=0, sticky=tk.W, pady=(0, 8))
+            if probe.photo:
+                self.after(600, _warm_rembg)
+
+        def _apply_one(name: str, ok: bool, err: Exception | None) -> None:
+            self._probe_progress[name] = ok
+            if err is not None:
+                self._probe_errors[name] = err
+            if ok:
+                if name == "pdf":
+                    mount_pdf_tabs(self, nb)
+                elif name == "photo":
+                    mount_photo_tab(self, nb)
+                elif name == "meeting":
+                    mount_meeting_tab(self, nb)
+            try:
+                self._module_status.configure(text=_status_line())
+            except tk.TclError:
+                pass
+            _maybe_finalize()
+
+        def _spawn_try(name: str, fn: Callable[[], tuple[bool, Exception | None]]) -> None:
+            def worker() -> None:
+                try:
+                    ok, err = fn()
+                except Exception as e:
+                    ok, err = False, e
+                self.after(0, lambda: _apply_one(name, ok, err))
+
+            threading.Thread(target=worker, daemon=True).start()
+
+        _spawn_try("pdf", try_import_pdf)
+        _spawn_try("photo", try_import_photo)
+        _spawn_try("meeting", try_import_meeting)
 
     def attach_scale_resize(self, parent: tk.Misc, reserve: int = 200) -> None:
         """改 Scale.length 会连锁触发 Configure；用防抖 + 子控件快照 + 宽度去抖，避免重入与 RecursionError。"""
